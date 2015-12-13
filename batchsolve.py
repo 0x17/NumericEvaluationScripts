@@ -115,14 +115,14 @@ def plotCurves(instname, termChoice, ext):
 	os.system("gnuplot -e \"instTitle='"+instname.replace("_", "\_")+"'; outputFile='"+instname+"_"+termChoice+"_Trace."+ext+"'; terminalChoice='"+termChoice+"'\" plotSolverGenerated.gp")
 
 def traceSolve(instname):
-	'''if os.name != 'posix':
+	if os.name != 'posix':
 		solveWithGams("CPLEX", instname, True)
 		solveWithGams("Gurobi", instname, True)
 		solveWithGams("LocalSolver", instname, True)
 		solveWithMethod("LocalSolver", instname, True)
 
 	solveWithMethod("BranchAndBound", instname, True)
-	solveWithEachGA(instname, True)'''
+	solveWithEachGA(instname, True)
 
 	terms = [("pdfcairo", "pdf"), ("png", "png"), ("pstricks", "tex"), ("latex", "tex"), ("tikz", "tex")]
 	for pair in terms:
