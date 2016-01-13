@@ -1,6 +1,7 @@
 import os
 import sys
 import glob
+import codecs
 
 def osCommandStr(cmd):
 	return "./" + cmd + " " if os.name == 'posix' else cmd + ".exe "
@@ -36,20 +37,36 @@ def solveWithEachGA(pfn, trace = False):
 	for i in range(5):
 		solveWithMethod("GA" + str(i), pfn, trace)
 
+def showProgress(fn, ctr, numEntries):
+    percDone = float(ctr) / float(numEntries)
+    print 'File: ' + fn + ' ;;; (' + str(ctr) + '/' + numEntries + ') ' + percDone + '%'
+
 def batchSolve(dirname):
+    ctr = 1
+    numEntries = len(os.listdir(dirname))
 	for fn in os.listdir(dirname):
 		pfn = dirname + "/" + fn
-
+        
 		if os.name != 'posix':
 			solveWithGams("Gurobi", pfn)
+            showProgress(fn, ctr, numEntries)
+            
 			solveWithGams("LocalSolver", pfn)
+            showProgress(fn, ctr, numEntries)
+            
 			solveWithMethod("LocalSolver", pfn)
+            showProgress(fn, ctr, numEntries)
 
 		solveWithMethod("BranchAndBound", pfn)
+        showProgress(fn, ctr, numEntries)
+        
 		solveWithEachGA(pfn)
+        showProgress(fn, ctr, numEntries)
+        
+        ctr += 1
 
 def generateGPlotCode():
-	plines = '\n'
+	plines = ''
 
 	GMS_PREFIXES = ['GMSLS', 'GUROBI', 'CPLEX']
 	MIP_PREFIXES = ['GUROBI', 'CPLEX']
@@ -78,7 +95,7 @@ def generateGPlotCode():
 
 			title = fn
 
-			plines += '\t\'' + fn + '\' using ' + str(colX) + ':' + str(colY) + ' lt rgb \'' + color + '\' dashtype 4 notitle smooth unique, \\ \n'
+			plines += '\t\'' + fn + '\' using ' + str(colX) + ':' + str(colY) + ' lt rgb \'' + color + '\' dashtype 4 notitle smooth unique, \\\n'
 			plines += '\t\'' + fn + '\' using ' + str(colX) + ':' + str(colY) + ' title \'' + title + '\' with points pointtype ' + str(ctr) + ' lt rgb \'' + color + '\' ps 0.9'
 			if fsctr < len(fsentries):
 				plines += ', \\\n'
@@ -106,12 +123,12 @@ set datafile separator ','
 
 set xrange [0:*timelimit*]
 
-plot\\\n*plotlines*""".replace('*timelimit*', str(timelimit)).replace('*plotlines*', plines)
+plot *plotlines*""".replace('*timelimit*', str(timelimit)).replace('*plotlines*', plines)
 	return codeTemplate
 
 def plotCurves(instname, termChoice, ext):
 	gpCode = generateGPlotCode()
-	with open('plotSolverGenerated.gp', 'w') as f: f.write(gpCode)
+	with codecs.open('plotSolverGenerated.gp', 'w', 'utf-8') as f: f.write(gpCode)
 	os.system("gnuplot -e \"instTitle='"+instname.replace("_", "\_")+"'; outputFile='"+instname+"_"+termChoice+"_Trace."+ext+"'; terminalChoice='"+termChoice+"'\" plotSolverGenerated.gp")
 
 def traceSolve(instname):
