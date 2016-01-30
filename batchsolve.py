@@ -37,33 +37,48 @@ def solveWithEachGA(pfn, trace = False):
 	for i in range(5):
 		solveWithMethod("GA" + str(i), pfn, trace)
 
+def solveWithEachNativeLS(pfn, trace = False):
+	for i in range(3):
+		solveWithMethod("LocalSolverNative" + str(i), pfn, trace)
+
 def showProgress(fn, ctr, numEntries):
-    percDone = float(ctr) / float(numEntries)
-    print 'File: ' + fn + ' ;;; (' + str(ctr) + '/' + numEntries + ') ' + percDone + '%'
+	percDone = float(ctr) / float(numEntries)
+	print 'File: ' + fn + ' ;;; (' + str(ctr) + '/' + str(numEntries) + ') ' + str(percDone) + '%'
+
+def minMaxMsNotEqual(fn):
+	skipfile = 'plsdoskip'
+	os.system('java -jar ScheduleValidator.jar ' + fn)
+	
+	if os.path.isfile(skipfile):
+		os.remove(skipfile)
+		return False
+		
+	return True
 
 def batchSolve(dirname):
-    ctr = 1
-    numEntries = len(os.listdir(dirname))
+	ctr = 1
+	numEntries = len(os.listdir(dirname))
+	
 	for fn in os.listdir(dirname):
 		pfn = dirname + "/" + fn
-        
-		if os.name != 'posix':
-			solveWithGams("Gurobi", pfn)
-            showProgress(fn, ctr, numEntries)
-            
-			solveWithGams("LocalSolver", pfn)
-            showProgress(fn, ctr, numEntries)
-            
-			solveWithMethod("LocalSolver", pfn)
-            showProgress(fn, ctr, numEntries)
+		
+		if minMaxMsNotEqual(pfn):		 
+			if os.name != 'posix':
+				solveWithGams("Gurobi", pfn)
+				showProgress(fn, ctr, numEntries)				
+				solveWithGams("LocalSolver", pfn)
+				showProgress(fn, ctr, numEntries)				
+				solveWithMethod("LocalSolver", pfn)
+				showProgress(fn, ctr, numEntries)
+				solveWithEachNativeLS(pfn)
+				showProgress(fn, ctr, numEntries)
 
-		solveWithMethod("BranchAndBound", pfn)
-        showProgress(fn, ctr, numEntries)
-        
-		solveWithEachGA(pfn)
-        showProgress(fn, ctr, numEntries)
-        
-        ctr += 1
+			solveWithMethod("BranchAndBound", pfn)
+			showProgress(fn, ctr, numEntries)			
+			solveWithEachGA(pfn)
+			showProgress(fn, ctr, numEntries)
+		
+		ctr += 1
 
 def generateGPlotCode():
 	plines = ''
@@ -140,6 +155,7 @@ def traceSolve(instname):
 
 	solveWithMethod("BranchAndBound", instname, True)
 	solveWithEachGA(instname, True)
+	solveWithEachNativeLS(instname, True)
 
 	terms = [("pdfcairo", "pdf"), ("png", "png"), ("pstricks", "tex"), ("latex", "tex"), ("tikz", "tex")]
 	for pair in terms:

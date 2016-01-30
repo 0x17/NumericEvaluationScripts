@@ -6,6 +6,9 @@ del GA4Results.txt
 del GA5Results.txt
 del GA6Results.txt
 del GA7Results.txt
+del LocalSolverNative0Results.txt
+del LocalSolverNative1Results.txt
+del LocalSolverNative2Results.txt
 del BranchAndBoundResults.txt
 del LocalSolverResults.txt
 del GMS_LocalSolver_Results.txt
