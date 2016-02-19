@@ -89,12 +89,13 @@ solvetime = rcpspoc.resusd;
 slvstat = rcpspoc.solvestat;
 modelstat = rcpspoc.modelstat;
 
-$ontext
-execute_unload '%instname%_results.gdx' x.l x.m z.l z.m profit.l profit.m solvetime slvstat modelstat;
+*$ontext
+*execute_unload '%instname%_results.gdx' x.l x.m z.l z.m profit.l profit.m solvetime slvstat modelstat;
 
-display z.l;
+*display z.l;
 
-file fp /%instname%_results.txt/;
+*file fp /%instname%_results.txt/;
+file fp /myschedule.txt/;
 put fp;
 scalar stj;
 loop(j,
@@ -103,16 +104,26 @@ loop(j,
       stj = ord(t) - durations(j) - 1;
       put ord(j):>4:0 '->':2 stj:<4:0 / )));
 putclose fp
-$offtext
+
+file fpprof /myprofit.txt/;
+put fpprof;
+put profit.l;
+*if(modelstat = 1 or modelstat = 7 or modelstat = 8,
+*  put profit.l;
+*else
+*  put 'infes');
+putclose fpprof;
+*$offtext
 
 *$ontext
 file fpres /GMS_%solver%_Results.txt/;
 fpres.ap = 1;
 if(%trace% = 0,
   put fpres;
-  if(modelstat = 1 or modelstat = 7 or modelstat = 8,
-    put '%instname%' ';':1 round(profit.l,4):<99:4 /;
-  else
-    put '%instname%' ';infes':6);
+  put '%instname%' ';':1 round(profit.l,4):<99:4 /;
+*  if(modelstat = 1 or modelstat = 7 or modelstat = 8,
+*    put '%instname%' ';':1 round(profit.l,4):<99:4 /;
+*  else
+*    put '%instname%' ';infes':6);
   putclose fpres);
 *$offtext

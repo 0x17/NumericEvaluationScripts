@@ -5,12 +5,11 @@ import codecs
 
 def osCommandStr(cmd):
 	return "./" + cmd + " " if os.name == 'posix' else cmd + ".exe "
-
-def solveWithMethod(method, instancePath, trace = False):
-	cmd = osCommandStr("Solver") + method + " " + str(timelimit) + " " + instancePath
-	cmd += " traceobj" if trace else ""
-	os.system(cmd)
-
+	
+SCHEDULE_FN = "myschedule.txt"
+PROFIT_FN = "myprofit.txt"
+SKIPFILE = "plsdoskip"
+	
 def forceDeleteFile(fn):
 	while True:
 		try:
@@ -20,6 +19,32 @@ def forceDeleteFile(fn):
 			print "Deleting " + fn + " failed. Retry!"
 		else:
 			break
+
+def appendToInvalidLst(fn, method):
+	with open("invalids.txt", "a") as fp:
+		fp.write(fn+";"+method+"\n")
+	
+def validateScheduleAndProfit(fn, method):
+	if ((not os.path.isfile(SCHEDULE_FN)) or (not os.path.isfile(PROFIT_FN))):
+		raise Exception('Unable to find schedule or profit file for method ' + method + '!')
+	else:
+		os.system("java -jar ScheduleValidator.jar " + fn)
+		if os.path.isfile(SKIPFILE):
+			forceDeleteFile(SKIPFILE)
+			forceDeleteFile(SCHEDULE_FN)
+			forceDeleteFile(PROFIT_FN)
+			appendToInvalidLst(fn, method)
+			#raise Exception('Invalid schedule or profit for method ' + method + '!')
+		else:
+			forceDeleteFile(SCHEDULE_FN)
+			forceDeleteFile(PROFIT_FN)
+			print 'Valid solution from ' + method + ' for ' + fn
+
+def solveWithMethod(method, instancePath, trace = False):
+	cmd = osCommandStr("Solver") + method + " " + str(timelimit) + " " + instancePath
+	cmd += " traceobj" if trace else ""
+	os.system(cmd)
+	validateScheduleAndProfit(instancePath, method)
 
 def convertSmToGdx(fn):
 	os.system(osCommandStr("Convert") + fn)
@@ -32,25 +57,25 @@ def solveWithGams(solver, instname, trace = False):
 	convertSmToGdx(instname)
 	os.system(gams_prefix)
 	forceDeleteFile(instname + ".gdx")
+	validateScheduleAndProfit(instname, "GMS_" + solver)
 
 def solveWithEachGA(pfn, trace = False):
 	for i in range(5):
 		solveWithMethod("GA" + str(i), pfn, trace)
 
 def solveWithEachNativeLS(pfn, trace = False):
-	for i in range(3):
+	for i in range(6):
 		solveWithMethod("LocalSolverNative" + str(i), pfn, trace)
 
 def showProgress(fn, ctr, numEntries):
-	percDone = float(ctr) / float(numEntries)
+	percDone = float(ctr) / float(numEntries) * 100.0
 	print 'File: ' + fn + ' ;;; (' + str(ctr) + '/' + str(numEntries) + ') ' + str(percDone) + '%'
 
 def minMaxMsNotEqual(fn):
-	skipfile = 'plsdoskip'
-	os.system('java -jar ScheduleValidator.jar ' + fn)
+	os.system('java -jar MinMaxMakespan.jar ' + fn)
 	
-	if os.path.isfile(skipfile):
-		os.remove(skipfile)
+	if os.path.isfile(SKIPFILE):
+		os.remove(SKIPFILE)
 		return False
 		
 	return True
@@ -58,8 +83,9 @@ def minMaxMsNotEqual(fn):
 def batchSolve(dirname):
 	ctr = 1
 	numEntries = len(os.listdir(dirname))
+	entries = os.listdir(dirname)
 	
-	for fn in os.listdir(dirname):
+	for fn in entries:
 		pfn = dirname + "/" + fn
 		
 		if minMaxMsNotEqual(pfn):		 

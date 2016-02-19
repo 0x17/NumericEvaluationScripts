@@ -1,8 +1,7 @@
-
 def composeResultFiles():
 	rfiles = ['GMS_Gurobi_Results.txt', 'GMS_LocalSolver_Results.txt', 'BranchAndBoundResults.txt', 'LocalSolverResults.txt']
 	for i in range(5): rfiles.append('GA'+str(i)+'Results.txt')
-	for i in range(3): rfiles.append('LocalSolverNative'+str(i)+'Results.txt')
+	for i in range(6): rfiles.append('LocalSolverNative'+str(i)+'Results.txt')
 	return rfiles
 	
 def parseColumn(fn, ix):
@@ -20,6 +19,8 @@ rfiles = composeResultFiles()
 resultlines = map(parseResults, rfiles)
 instances = parseInstances(rfiles[0])
 
+assert(all(len(instances) == len(col) for col in resultlines))
+
 def correctSep(ix, coll):
 	if ix < len(coll)-1: return ';'
 	else: return '\n'
@@ -31,7 +32,7 @@ with open('merged.txt', 'w') as f:
 
 	for i in range(len(instances)):
 		resStr = resultlines[0][i]
-		if resStr != 'infes' and float(resultlines[0][i].replace(',','.')) > 0.0:
-			f.write(instances[i] + ';')
-			for m in range(len(resultlines)):
-				f.write(resultlines[m][i].replace('.', ',') + correctSep(m, resultlines))
+		#if resStr != 'infes' and float(resultlines[0][i].replace(',','.')) > 0.0:
+		f.write(instances[i] + ';')
+		for m in range(len(resultlines)):
+			f.write(resultlines[m][i].replace('.', ',') + correctSep(m, resultlines))
