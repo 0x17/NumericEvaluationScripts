@@ -51,9 +51,11 @@ def convertSmToGdx(fn):
 	for f in ["_gams_net_gdb0.gdx", "_gams_net_gjo0.gms","_gams_net_gjo0.lst"]:
 		forceDeleteFile(f)
 
-def solveWithGams(solver, instname, trace = False):
+def solveWithGams(solver, instname, trace = False, noreslim = False):
 	traceStr = "1" if trace else "0"
-	gams_prefix = "gams modelcli.gms --trace="+traceStr+" --timelimit="+str(timelimit)+" --solver="+solver+" --instname=" + instname
+	sreslim = "9999999" if noreslim else str(timelimit)
+	nthreads = 0 if noreslim else 1
+	gams_prefix = "gams modelcli.gms --nthreads="+str(nthreads)+" --trace="+traceStr+" --timelimit="+sreslim+" --solver="+solver+" --instname=" + instname
 	convertSmToGdx(instname)
 	os.system(gams_prefix)
 	forceDeleteFile(instname + ".gdx")
@@ -79,31 +81,37 @@ def minMaxMsNotEqual(fn):
 		return False
 		
 	return True
+	
+def heuristics(fn, pfn, ctr, numEntries):
+	if os.name != 'posix':
+		solveWithGams("Gurobi", pfn)
+		showProgress(fn, ctr, numEntries)				
+		solveWithGams("LocalSolver", pfn)
+		showProgress(fn, ctr, numEntries)				
+		solveWithMethod("LocalSolver", pfn)
+		showProgress(fn, ctr, numEntries)
+		solveWithEachNativeLS(pfn)
+		showProgress(fn, ctr, numEntries)
 
-def batchSolve(dirname):
+	solveWithMethod("BranchAndBound", pfn)
+	showProgress(fn, ctr, numEntries)			
+	solveWithEachGA(pfn)
+	showProgress(fn, ctr, numEntries)
+
+def exacts(fn, pfn, ctr, numEntries):
+	solveWithGams("Gurobi", pfn, False, True)
+
+def batchSolve(dirname, callback):
 	ctr = 1
 	numEntries = len(os.listdir(dirname))
 	entries = os.listdir(dirname)
 	
 	for fn in entries:
-		pfn = dirname + "/" + fn
+		pfn = dirname + "/" + fn		
 		
 		if minMaxMsNotEqual(pfn):		 
-			if os.name != 'posix':
-				solveWithGams("Gurobi", pfn)
-				showProgress(fn, ctr, numEntries)				
-				solveWithGams("LocalSolver", pfn)
-				showProgress(fn, ctr, numEntries)				
-				solveWithMethod("LocalSolver", pfn)
-				showProgress(fn, ctr, numEntries)
-				solveWithEachNativeLS(pfn)
-				showProgress(fn, ctr, numEntries)
-
-			solveWithMethod("BranchAndBound", pfn)
-			showProgress(fn, ctr, numEntries)			
-			solveWithEachGA(pfn)
-			showProgress(fn, ctr, numEntries)
-		
+			callback(fn, pfn, ctr, numEntries)		
+			
 		ctr += 1
 
 def generateGPlotCode():
@@ -200,7 +208,7 @@ def parseArgs(args):
 		argpair = (args[2], float(args[3])) if len(args) >= 4 else defpairs[args[1]]
 		if args[1] == "batch":
 			dirname, timelimit = argpair
-			batchSolve(dirname)
+			batchSolve(dirname, exacts if timelimit == -1 else heuristics)
 		elif args[1] == "trace":
 			instname, timelimit = argpair
 			traceSolve(instname)
