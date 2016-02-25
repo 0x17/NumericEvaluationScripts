@@ -47,11 +47,23 @@ def solveWithMethod(method, instancePath, trace = False):
 	validateScheduleAndProfit(instancePath, method)
 
 def convertSmToGdx(fn):
-	os.system(osCommandStr("Convert") + fn)
+	while not os.path.isfile(fn+".gdx"):
+		os.system(osCommandStr("Convert") + fn)		
 	for f in ["_gams_net_gdb0.gdx", "_gams_net_gjo0.gms","_gams_net_gjo0.lst"]:
 		forceDeleteFile(f)
 
-def solveWithGams(solver, instname, trace = False, noreslim = False):
+GMS_RESULT_FILE = 'GMS_Gurobi_Results.txt'
+def gamsAlreadySolved(instname):
+	if os.path.isfile(GMS_RESULT_FILE):
+		with open(GMS_RESULT_FILE) as f:
+			if any(line.startswith(instname) for line in f.readlines()):
+				return True
+	return False
+
+def solveWithGams(solver, instname, trace = False, noreslim = False):	
+	if noreslim and gamsAlreadySolved(instname):
+		print "Skipping " + instname
+		return		
 	traceStr = "1" if trace else "0"
 	sreslim = "9999999" if noreslim else str(timelimit)
 	nthreads = 0 if noreslim else 1
@@ -107,6 +119,7 @@ def batchSolve(dirname, callback):
 	entries = os.listdir(dirname)
 	
 	for fn in entries:
+		if not fn.endswith(".sm"): continue
 		pfn = dirname + "/" + fn		
 		
 		if minMaxMsNotEqual(pfn):		 
