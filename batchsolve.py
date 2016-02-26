@@ -110,9 +110,10 @@ def heuristics(fn, pfn, ctr, numEntries):
 	solveWithEachGA(pfn)
 	showProgress(fn, ctr, numEntries)
 
-def exacts(fn, pfn, ctr, numEntries):
-	solveWithGams("Gurobi", pfn, False, True)
+def exacts(fn, pfn, ctr, numEntries): solveWithGams("Gurobi", pfn, False, True)
 
+def converter(fn, pfn, ctr, numEntries): convertSmToGdx(pfn)
+	
 def batchSolve(dirname, callback):
 	ctr = 1
 	numEntries = len(os.listdir(dirname))
@@ -211,13 +212,14 @@ def traceSolve(instname):
 def showUsage():
 	print "Usage for batching: python batchsolve.py batch dirname timelimit"
 	print "Usage for tracing: python batchsolve.py trace instname timelimit"
+	print "Usage for batch gdx: python batchsolve.py convert dirname"
 
 def parseArgs(args):
 	global timelimit
 
 	if len(args) == 1: showUsage()
 	else:
-		defpairs = { "batch" : ("j30", 10), "trace" : ("QBWLBeispiel.sm", 10) }
+		defpairs = { "batch" : ("j30", 10), "trace" : ("QBWLBeispiel.sm", 10), "convert" : "j30" }
 		argpair = (args[2], float(args[3])) if len(args) >= 4 else defpairs[args[1]]
 		if args[1] == "batch":
 			dirname, timelimit = argpair
@@ -225,6 +227,9 @@ def parseArgs(args):
 		elif args[1] == "trace":
 			instname, timelimit = argpair
 			traceSolve(instname)
+		elif args[1] == "convert":
+			dirname = args[2]
+			batchSolve(dirname, converter)
 
 def main(): parseArgs(sys.argv)
 if __name__ == "__main__": main()
