@@ -3,13 +3,13 @@ import sys
 import glob
 import codecs
 
-def osCommandStr(cmd):
-	return "./" + cmd + " " if os.name == 'posix' else cmd + ".exe "
-	
 SCHEDULE_FN = "myschedule.txt"
 PROFIT_FN = "myprofit.txt"
 SKIPFILE = "plsdoskip"
-	
+GMS_RESULT_FILE = 'GMS_Gurobi_Results.txt'
+
+def osCommandStr(cmd): return "./" + cmd + " " if os.name == 'posix' else cmd + ".exe "
+
 def forceDeleteFile(fn):
 	while True:
 		try:
@@ -23,7 +23,7 @@ def forceDeleteFile(fn):
 def appendToInvalidLst(fn, method):
 	with open("invalids.txt", "a") as fp:
 		fp.write(fn+";"+method+"\n")
-	
+
 def validateScheduleAndProfit(fn, method):
 	if ((not os.path.isfile(SCHEDULE_FN)) or (not os.path.isfile(PROFIT_FN))):
 		raise Exception('Unable to find schedule or profit file for method ' + method + '!')
@@ -48,11 +48,10 @@ def solveWithMethod(method, instancePath, trace = False):
 
 def convertSmToGdx(fn):
 	while not os.path.isfile(fn+".gdx"):
-		os.system(osCommandStr("Convert") + fn)		
+		os.system(osCommandStr("Convert") + fn)
 	for f in ["_gams_net_gdb0.gdx", "_gams_net_gjo0.gms","_gams_net_gjo0.lst"]:
 		forceDeleteFile(f)
 
-GMS_RESULT_FILE = 'GMS_Gurobi_Results.txt'
 def gamsAlreadySolved(instname):
 	if os.path.isfile(GMS_RESULT_FILE):
 		with open(GMS_RESULT_FILE) as f:
@@ -60,10 +59,10 @@ def gamsAlreadySolved(instname):
 				return True
 	return False
 
-def solveWithGams(solver, instname, trace = False, noreslim = False):	
+def solveWithGams(solver, instname, trace = False, noreslim = False):
 	if noreslim and gamsAlreadySolved(instname):
 		print "Skipping " + instname
-		return		
+		return
 	traceStr = "1" if trace else "0"
 	sreslim = "9999999" if noreslim else str(timelimit)
 	nthreads = 0 if noreslim else 1
@@ -71,14 +70,14 @@ def solveWithGams(solver, instname, trace = False, noreslim = False):
 	convertSmToGdx(instname)
 	os.system(gams_prefix)
 	forceDeleteFile(instname + ".gdx")
-	validateScheduleAndProfit(instname, "GMS_" + solver)
+	validateScheduleAndProfit(instname, "GMS_" + solver) 
 
 def solveWithEachGA(pfn, trace = False):
 	for i in range(5):
 		solveWithMethod("GA" + str(i), pfn, trace)
 
 def solveWithEachNativeLS(pfn, trace = False):
-	for i in range(6):
+	for i in range(4, 6):
 		solveWithMethod("LocalSolverNative" + str(i), pfn, trace)
 
 def showProgress(fn, ctr, numEntries):
@@ -87,47 +86,66 @@ def showProgress(fn, ctr, numEntries):
 
 def minMaxMsNotEqual(fn):
 	os.system('java -jar MinMaxMakespan.jar ' + fn)
-	
+
 	if os.path.isfile(SKIPFILE):
 		os.remove(SKIPFILE)
 		return False
-		
-	return True
-	
-def heuristics(fn, pfn, ctr, numEntries):
-	if os.name != 'posix':
-		solveWithGams("Gurobi", pfn)
-		showProgress(fn, ctr, numEntries)				
-		solveWithGams("LocalSolver", pfn)
-		showProgress(fn, ctr, numEntries)				
-		solveWithMethod("LocalSolver", pfn)
-		showProgress(fn, ctr, numEntries)
-		solveWithEachNativeLS(pfn)
-		showProgress(fn, ctr, numEntries)
 
+	return True
+
+def heuristics(fn, pfn, ctr, numEntries):
+	solveWithGams("Gurobi", pfn)
+	showProgress(fn, ctr, numEntries)
+	
+	#solveWithGams("LocalSolver", pfn)
+	#showProgress(fn, ctr, numEntries)
+	
+	solveWithMethod("LocalSolver", pfn)
+	showProgress(fn, ctr, numEntries)
+	solveWithEachNativeLS(pfn)
+	showProgress(fn, ctr, numEntries)
 	solveWithMethod("BranchAndBound", pfn)
-	showProgress(fn, ctr, numEntries)			
+	showProgress(fn, ctr, numEntries)
 	solveWithEachGA(pfn)
 	showProgress(fn, ctr, numEntries)
 
 def exacts(fn, pfn, ctr, numEntries): solveWithGams("Gurobi", pfn, False, True)
 
 def converter(fn, pfn, ctr, numEntries): convertSmToGdx(pfn)
-	
+
 def batchSolve(dirname, callback):
 	ctr = 1
 	numEntries = len(os.listdir(dirname))
 	entries = os.listdir(dirname)
-	
+
 	for fn in entries:
 		if not fn.endswith(".sm"): continue
-		pfn = dirname + "/" + fn		
-		
-		if minMaxMsNotEqual(pfn):		 
-			callback(fn, pfn, ctr, numEntries)		
-			
+		pfn = dirname + "/" + fn
+
+		if minMaxMsNotEqual(pfn):
+			callback(fn, pfn, ctr, numEntries)
+
 		ctr += 1
 
+titleMapping = {
+	'CPLEXTrace.txt': 'GMS/CPLEX',
+	'GUROBITrace.txt': 'GMS/GUROBI',
+#	'GMSLS_Trace.txt': 'GMS/LocalSolver',
+#	'LocalSolverTrace.txt': 'LSP/LocalSolver',
+	'BranchAndBoundTrace.txt': 'B\\&B',
+#	'GATimeWindowBordersGATrace.txt': 'GA ({/Symbol l}/{/Symbol b})',
+#	'GATimeWindowArbitraryGATrace.txt': 'GA ({/Symbol l}/{/Symbol t})',
+#	'GAFixedCapacityGATrace.txt': 'GA ({/Symbol l}/zr)',
+	'GATimeVaryingCapacityGATrace.txt': 'GA ({/Symbol l}/zrt)',
+#	'GACompareAlternativesGATrace.txt': 'GA ({/Symbol l})',
+	'LocalSolverNative0Trace.txt': 'LS ({/Symbol l}/{/Symbol b})',
+#	'LocalSolverNative1Trace.txt': 'LS ({/Symbol l}/{/Symbol t})',
+#	'LocalSolverNative2Trace.txt': 'LS ({/Symbol l}/discr{/Symbol t})',
+#	'LocalSolverNative3Trace.txt': 'LS ({/Symbol l})',
+#	'LocalSolverNative4Trace.txt': 'LS ({/Symbol l}/zr)',
+#	'LocalSolverNative5Trace.txt': 'LS ({/Symbol l}/zrt)'
+}
+		
 def generateGPlotCode():
 	plines = ''
 
@@ -142,8 +160,14 @@ def generateGPlotCode():
 	ctr = 1
 	fsctr = 0
 
-	fsentries = glob.glob('*.*')
+	#fsentries = glob.glob('*.*')
+	
+	#entrycount = len(fsentries)
+	entrycount = len(titleMapping)
 
+	#for fsentry in fsentries:
+	fsentries = titleMapping.keys()
+	fsentries.sort()
 	for fsentry in fsentries:
 		fsctr += 1
 		if fsentry.endswith('Trace.txt'):
@@ -152,15 +176,17 @@ def generateGPlotCode():
 			if isGamsTrace(fn): colX, colY = (4, 5)
 			else: colX, colY = (1, 2)
 
-			if 'GA' in fn: color = '#FF0000'
-			elif mipMethod(fn): color = '#00FF00'
-			else: color = '#0000FF'
+			if 'GA' in fn: color = '#cc0000'
+			elif 'Native' in fn: color = '#eb8c00'
+			elif mipMethod(fn): color = '#00cc00'
+			elif 'LocalSolver' in fn: color = '#cc00cc'
+			else: color = '#0000cc'
 
-			title = fn
+			title = titleMapping[fn]
 
 			plines += '\t\'' + fn + '\' using ' + str(colX) + ':' + str(colY) + ' lt rgb \'' + color + '\' dashtype 4 notitle smooth unique, \\\n'
-			plines += '\t\'' + fn + '\' using ' + str(colX) + ':' + str(colY) + ' title \'' + title + '\' with points pointtype ' + str(ctr) + ' lt rgb \'' + color + '\' ps 0.9'
-			if fsctr < len(fsentries):
+			plines += '\t\'' + fn + '\' using ' + str(colX) + ':' + str(colY) + ' title \'' + title + '\' with points pointtype ' + str(ctr) + ' lt rgb \'' + color + '\' ps 0.6'
+			if fsctr < entrycount:
 				plines += ', \\\n'
 
 			ctr += 1
@@ -173,6 +199,7 @@ set title instTitle
 set key outside top right
 
 set key font 'cmr12,10'
+set key spacing 2.5
 set xtics font 'cmr12,10'
 set ytics font 'cmr12,10'
 set xlabel font 'cmr12,10'
@@ -192,20 +219,20 @@ plot *plotlines*""".replace('*timelimit*', str(timelimit)).replace('*plotlines*'
 def plotCurves(instname, termChoice, ext):
 	gpCode = generateGPlotCode()
 	with codecs.open('plotSolverGenerated.gp', 'w', 'utf-8') as f: f.write(gpCode)
-	os.system("gnuplot -e \"instTitle='"+instname.replace("_", "\_")+"'; outputFile='"+instname+"_"+termChoice+"_Trace."+ext+"'; terminalChoice='"+termChoice+"'\" plotSolverGenerated.gp")
+	os.system("gnuplot -e \"instTitle='"+instname.replace("_", " ")+"'; outputFile='"+instname+"_"+termChoice+"_Trace."+ext+"'; terminalChoice='"+termChoice+"'\" plotSolverGenerated.gp")
 
 def traceSolve(instname):
-	if os.name != 'posix':
-		solveWithGams("CPLEX", instname, True)
-		solveWithGams("Gurobi", instname, True)
-		solveWithGams("LocalSolver", instname, True)
-		solveWithMethod("LocalSolver", instname, True)
-
+	solveWithGams("CPLEX", instname, True)
+	solveWithGams("Gurobi", instname, True)
+	#solveWithGams("LocalSolver", instname, True)
+	solveWithMethod("LocalSolver", instname, True)
 	solveWithMethod("BranchAndBound", instname, True)
 	solveWithEachGA(instname, True)
 	solveWithEachNativeLS(instname, True)
 
-	terms = [("pdfcairo", "pdf"), ("png", "png"), ("pstricks", "tex"), ("latex", "tex"), ("tikz", "tex")]
+	'''("png", "png"),'''
+	'''("pstricks", "tex"), ("latex", "tex"), ("tikz", "tex")'''
+	terms = [("pdfcairo", "pdf")]
 	for pair in terms:
 		plotCurves(instname, pair[0], pair[1])
 

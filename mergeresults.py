@@ -1,5 +1,5 @@
 def composeResultFiles():
-	rfiles = ['GMS_Gurobi_Results.txt', 'GMS_LocalSolver_Results.txt', 'BranchAndBoundResults.txt', 'LocalSolverResults.txt']
+	rfiles = ['GMS_Gurobi_Results.txt', 'BranchAndBoundResults.txt', 'LocalSolverResults.txt']
 	for i in range(5): rfiles.append('GA'+str(i)+'Results.txt')
 	for i in range(6): rfiles.append('LocalSolverNative'+str(i)+'Results.txt')
 	return rfiles
