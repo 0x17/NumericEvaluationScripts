@@ -1,3 +1,4 @@
 displayinterval=1
 miptracetime=1
 miptrace=GUROBITrace.txt
+mipstart=1

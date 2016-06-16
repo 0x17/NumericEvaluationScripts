@@ -7,6 +7,8 @@ $eolcom §
 
 *$set instname ProjectStructureData
 
+*$setglobal use_seed
+
 options OPTCR = 0
         MIP = %solver%
         RESLIM = %timelimit%
@@ -71,14 +73,19 @@ z.lo(r,t) = 0;
 z.up(r,t) = zmax(r);
 profit.lo = 0;
 
-loop(j,
-  loop(t,
-    if(seedsol(j) = ord(t)-1 - durations(j),
-      x.l(j,t) = 1;
-    else
-      x.l(j,t) = 0)));
-profit.l = 0;
-z.l(r,t) = 0;
+$ifthen setglobal use_seed
+$log using seed solution!
+  loop(j,
+    loop(t,
+      if(seedsol(j) = ord(t)-1 - durations(j),
+        x.l(j,t) = 1;
+      else
+        x.l(j,t) = 0)));
+  profit.l = 0;
+  z.l(r,t) = 0;
+$else
+$log seed solution disabled!
+$endif
 
 *execute_unload 'DebugOutput.gdx';
 *$exit
