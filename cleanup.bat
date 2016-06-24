@@ -12,11 +12,13 @@ del LocalSolverNative2Results.txt
 del LocalSolverNative3Results.txt
 del LocalSolverNative4Results.txt
 del LocalSolverNative5Results.txt
+del LocalSolverNative6Results.txt
 del invalids.txt
 del BranchAndBoundResults.txt
 del LocalSolverResults.txt
 del GMS_LocalSolver_Results.txt
 del GMS_Gurobi_Results.txt
+del GMS_CPLEX_Results.txt
 del modelcli.lxi
 del modelcli.lst
 del modelcli.log

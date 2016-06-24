@@ -42,8 +42,9 @@ def validateScheduleAndProfit(fn, method):
 			print('Valid solution from ' + method + ' for ' + fn)
 
 def solveWithMethod(method, instancePath, trace = False):
-	cmd = osCommandStr('Solver') + method + ' ' + str(timelimit) + ' ' + instancePath
+	cmd = osCommandStr('Solver') + method + ' ' + str(timelimit) + ' ' + str(iterlimit) + ' ' + instancePath
 	cmd += ' traceobj' if trace else ''
+	print('Running: ' + cmd)
 	os.system(cmd)
 	validateScheduleAndProfit(instancePath, method)
 
@@ -69,20 +70,24 @@ def solveWithGams(solver, instname, trace = False, noreslim = False):
 		return
 	traceStr = '1' if trace else '0'
 	sreslim = '9999999' if noreslim else str(timelimit)
+	siterlimit = str(iterlimit)
 	nthreads = 0 if noreslim else 1
-	gams_prefix = 'gams modelcli.gms --nthreads='+str(nthreads)+' --trace='+traceStr+' --timelimit='+sreslim+' --solver='+solver+' --instname=' + instname
+	gams_prefix = 'gams modelcli.gms --nthreads='+str(nthreads)+' --trace='+traceStr+' --timelimit='+sreslim+' --iterlim='+siterlimit+' --solver='+solver+' --instname=' + instname
 	convertSmToGdx(instname)
 	os.system(gams_prefix)
 	forceDeleteFile(instname + '.gdx')
 	validateScheduleAndProfit(instname, 'GMS_' + solver) 
 
-def solveWithEachGA(pfn, trace = False):
-	for i in range(6):
+def solveWithSelectedGAs(pfn, indices, trace = False):
+	for i in indices:
 		solveWithMethod('GA' + str(i), pfn, trace)
 
-def solveWithEachNativeLS(pfn, trace = False):
-	for i in range(7):
+def solveWithSelectedNativeLS(pfn, indices, trace = False):
+	for i in indices:
 		solveWithMethod('LocalSolverNative' + str(i), pfn, trace)
+		
+def solveWithEachGA(pfn, trace = False): solveWithSelectedGAs(pfn, range(6), trace)
+def solveWithEachNativeLS(pfn, trace = False): solveWithSelectedNativeLS(pfn, range(7), trace)
 
 def showProgress(fn, ctr, numEntries):
 	percDone = float(ctr) / float(numEntries) * 100.0
@@ -98,26 +103,31 @@ def minMaxMsNotEqual(fn):
 	return True
 
 def heuristics(fn, pfn, ctr, numEntries):
-	solveWithGams('Gurobi', pfn)
-	showProgress(fn, ctr, numEntries)
+#	solveWithGams('CPLEX', pfn)
+#	showProgress(fn, ctr, numEntries)
 	
 	#solveWithGams('LocalSolver', pfn)
 	#showProgress(fn, ctr, numEntries)
 	
-	solveWithMethod('LocalSolver', pfn)
+	#solveWithMethod('LocalSolver', pfn)
+	#showProgress(fn, ctr, numEntries)
+	#solveWithEachNativeLS(pfn)
+	#showProgress(fn, ctr, numEntries)
+	#solveWithMethod('BranchAndBound', pfn)
+	#showProgress(fn, ctr, numEntries)
+	#solveWithEachGA(pfn)
+	#showProgress(fn, ctr, numEntries)
+	
+	solveWithSelectedNativeLS(pfn, [4, 5], True)
 	showProgress(fn, ctr, numEntries)
-	solveWithEachNativeLS(pfn)
-	showProgress(fn, ctr, numEntries)
-	solveWithMethod('BranchAndBound', pfn)
-	showProgress(fn, ctr, numEntries)
-	solveWithEachGA(pfn)
+	solveWithSelectedGAs(pfn, [2, 3], True)
 	showProgress(fn, ctr, numEntries)
 
 def exacts(fn, pfn, ctr, numEntries): solveWithGams('CPLEX', pfn, False, True)
 
 def converter(fn, pfn, ctr, numEntries): convertSmToGdx(pfn)
 
-def batchSolve(dirname, callback):
+def batchSolve(dirname, callback, onlyOptimallySolved = False):
 	ctr = 1
 	numEntries = len(os.listdir(dirname))
 	entries = os.listdir(dirname)
@@ -126,14 +136,16 @@ def batchSolve(dirname, callback):
 		if not fn.endswith('.sm'): continue
 		pfn = dirname + '/' + fn
 
-		if minMaxMsNotEqual(pfn):
+		solvedYet = gamsAlreadySolved(pfn, 'GMS_CPLEX_Results.txt')
+		
+		if minMaxMsNotEqual(pfn) and (not(onlyOptimallySolved) or solvedYet):
 			callback(fn, pfn, ctr, numEntries)
 
 		ctr += 1
 
 def traceSolve(instname):
 	solveWithGams('CPLEX', instname, True)
-	solveWithGams('Gurobi', instname, True)
+	#solveWithGams('Gurobi', instname, True)
 	#solveWithGams('LocalSolver', instname, True)
 	solveWithMethod('LocalSolver', instname, True)
 	solveWithMethod('BranchAndBound', instname, True)
@@ -143,22 +155,22 @@ def traceSolve(instname):
 	mptrace.plot(instname)
 
 def showUsage():
-	print('Usage for batching: python batchsolve.py batch dirname timelimit')
-	print('Usage for tracing: python batchsolve.py trace instname timelimit')
+	print('Usage for batching: python batchsolve.py batch dirname timelimit iterlimit')
+	print('Usage for tracing: python batchsolve.py trace instname timelimit iterlimit')
 	print('Usage for batch gdx: python batchsolve.py convert dirname')
 
 def parseArgs(args):
-	global timelimit
+	global timelimit, iterlimit
 
 	if len(args) == 1: showUsage()
 	else:
 		defpairs = { 'batch' : ('j30', 10), 'trace' : ('QBWLBeispiel.sm', 10), 'convert' : 'j30' }
-		argpair = (args[2], float(args[3])) if len(args) >= 4 else defpairs[args[1]]
+		argtuple = (args[2], float(args[3]), int(args[4])) if len(args) >= 5 else defpairs[args[1]]
 		if args[1] == 'batch':
-			dirname, timelimit = argpair
-			batchSolve(dirname, exacts if timelimit == -1 else heuristics)
+			dirname, timelimit, iterlimit = argtuple
+			batchSolve(dirname, exacts if timelimit == -1 and iterlimit == -1 else heuristics, True)
 		elif args[1] == 'trace':
-			instname, timelimit = argpair
+			instname, timelimit, iterlimit = argtuple
 			traceSolve(instname)
 		elif args[1] == 'convert':
 			dirname = args[2]

@@ -1,7 +1,8 @@
 def composeResultFiles():
-	rfiles = ['GMS_Gurobi_Results.txt', 'BranchAndBoundResults.txt', 'LocalSolverResults.txt']
+	#rfiles = ['GMS_Gurobi_Results.txt', 'BranchAndBoundResults.txt', 'LocalSolverResults.txt']
+	rfiles = ['BranchAndBoundResults.txt', 'LocalSolverResults.txt']
 	for i in range(5): rfiles.append('GA'+str(i)+'Results.txt')
-	for i in range(6): rfiles.append('LocalSolverNative'+str(i)+'Results.txt')
+	for i in range(7): rfiles.append('LocalSolverNative'+str(i)+'Results.txt')
 	return rfiles
 	
 def parseColumn(fn, ix):
@@ -16,7 +17,7 @@ def parseInstances(fn): return parseColumn(fn, 0)
 def parseResults(fn): return parseColumn(fn, 1)
 	
 rfiles = composeResultFiles()
-resultlines = map(parseResults, rfiles)
+resultlines = list(map(parseResults, rfiles))
 instances = parseInstances(rfiles[0])
 
 assert(all(len(instances) == len(col) for col in resultlines))

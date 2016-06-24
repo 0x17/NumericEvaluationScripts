@@ -12,7 +12,8 @@ $eolcom §
 options OPTCR = 0
         MIP = %solver%
         RESLIM = %timelimit%
-        THREADS = %nthreads%;
+        THREADS = %nthreads%
+		ITERLIM = %iterlim%;
 
 sets j Arbeitsgänge
      t Perioden
