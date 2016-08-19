@@ -1,1 +1,3 @@
-mipstart=1
+mipstart=0
+miptracetime=1
+miptrace=CPLEXTrace.txt
