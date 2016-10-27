@@ -2,7 +2,8 @@ import os
 import sys
 import mptrace
 
-OUT_PATH = 'j120_30secs/'
+SET_NAME = 'j30'
+OUT_PATH = SET_NAME + '_5secs/'
 
 SCHEDULE_FN = OUT_PATH + 'myschedule.txt'
 PROFIT_FN = OUT_PATH + 'myprofit.txt'
@@ -69,16 +70,26 @@ def convert_sm_to_gdx(fn):
 
 
 def core_of_instance_name(instance_name):
-    return instance_name.replace('j120/', '').replace('.sm', '')
+    return instance_name.replace(SET_NAME + '/', '').replace('.sm', '')
 
 
-def gams_already_solved(instance_name, results_filename):
+def already_solved(instance_name, results_filename, checker):
     if os.path.isfile(results_filename):
         with open(results_filename) as f:
             for line in f.readlines():
-                if line.split(';')[0] == core_of_instance_name(instance_name):
+                if checker(line, instance_name):
                     return True
     return False
+
+
+def gams_already_solved(instance_name, results_filename):
+    return already_solved(instance_name, results_filename,
+                          lambda line, iname: line.split(';')[0] == core_of_instance_name(instance_name))
+
+
+def gurobi_already_solved(instance_name, results_filename):
+    return already_solved(instance_name, results_filename,
+                          lambda line, iname: line.strip() == core_of_instance_name(instance_name))
 
 
 def results_filename_for_solver(solver):
@@ -125,10 +136,13 @@ def solve_with_selected_native_ls(pfn, indices, trace=False):
         solve_with_method('LocalSolverNative' + str(i), pfn, trace)
 
 
-def solve_with_all_ga(pfn, trace=False): solve_with_selected_ga(pfn, range(6), trace)
+def solve_with_all_native_ls(pfn, trace=False):
+    solve_with_selected_native_ls(pfn, range(6), trace)
 
 
-def solve_with_all_native_ls(pfn, trace=False): solve_with_selected_native_ls(pfn, range(6), trace)
+def solve_with_gurobi(pfn, trace=False):
+    if not (gurobi_already_solved(pfn, 'GurobiOptimals.txt')):
+        solve_with_method('Gurobi', pfn, trace)
 
 
 def show_progress(fn, ctr, num_entries):
@@ -148,19 +162,8 @@ def min_max_makespan_not_equal(fn):
 
 
 def heuristics(pfn, fn, ctr, num_entries):
-    solve_with_gams('CPLEX', pfn, True)
+    solve_with_gurobi(pfn, True)
     show_progress(fn, ctr, num_entries)
-    solve_with_all_native_ls(pfn, True)
-    show_progress(fn, ctr, num_entries)
-    solve_with_method('BranchAndBound', pfn, True)
-    show_progress(fn, ctr, num_entries)
-    solve_with_all_ga(pfn, True)
-    show_progress(fn, ctr, num_entries)
-
-    #solve_with_selected_ga(pfn, [0, 1, 2], True)
-    #show_progress(fn, ctr, num_entries)
-    #solve_with_selected_native_ls(pfn, [0, 1, 2], True)
-    #show_progress(fn, ctr, num_entries)
 
 
 def exacts(pfn, fn, ctr, num_entries):
@@ -172,7 +175,7 @@ def converter(fn, pfn, ctr, num_entries):
 
 
 def print_estimated_time(num_instances):
-    num_methods = 4.0
+    num_methods = 1.0
     secs = float(timelimit) * float(num_instances) * num_methods
     hours = secs / 3600.0
     print('Estimated time for results\nIn seconds: ' + str(secs) + '\nIn hours: ' + str(hours))
@@ -180,8 +183,6 @@ def print_estimated_time(num_instances):
 
 def is_entry_relevant(directory_name, fn, only_optimally_solved):
     return fn.endswith('.sm') and min_max_makespan_not_equal(directory_name + '/' + fn)
-           #and (gams_already_solved(fn, 'REF_GMS_CPLEX_Results.txt') or not only_optimally_solved)
-
 
 
 def batch_solve(directory_name, callback, only_optimally_solved=False):
@@ -194,21 +195,9 @@ def batch_solve(directory_name, callback, only_optimally_solved=False):
         callback(directory_name + '/' + fn, fn, ctr, num_entries)
         ctr += 1
 
-def trace_solve(instance_name):
-    solve_with_gams('CPLEX', instance_name, True)
-    # solveWithGams('Gurobi', instname, True)
-    # solveWithGams('LocalSolver', instname, True)
-    solve_with_method('LocalSolver', instance_name, True)
-    solve_with_method('BranchAndBound', instance_name, True)
-    solve_with_all_ga(instance_name, True)
-    solve_with_all_native_ls(instance_name, True)
-    # gplot.plot(instname)
-    mptrace.plot(instance_name)
-
 
 def show_usage():
     print('Usage for batching: python batchsolve.py batch dirname timelimit iterlimit')
-    print('Usage for tracing: python batchsolve.py trace instname timelimit iterlimit')
     print('Usage for batch gdx: python batchsolve.py convert dirname')
 
 
@@ -218,20 +207,18 @@ def parse_args(args):
     if len(args) == 1:
         show_usage()
     else:
-        defpairs = {'batch': ('j30', 10), 'trace': ('QBWLBeispiel.sm', 10), 'convert': 'j30'}
+        defpairs = {'batch': ('j120', 10), 'trace': ('QBWLBeispiel.sm', 10), 'convert': 'j30'}
         argtuple = (args[2], float(args[3]), int(args[4])) if len(args) >= 5 else defpairs[args[1]]
         if args[1] == 'batch':
             dirname, timelimit, iterlimit = argtuple
             batch_solve(dirname, exacts if timelimit == -1 and iterlimit == -1 else heuristics, True)
-        elif args[1] == 'trace':
-            instname, timelimit, iterlimit = argtuple
-            trace_solve(instname)
         elif args[1] == 'convert':
             dirname = args[2]
             batch_solve(dirname, converter)
 
 
-def main(): parse_args(sys.argv)
+def main():
+    parse_args(sys.argv)
 
 
 if __name__ == '__main__': main()
