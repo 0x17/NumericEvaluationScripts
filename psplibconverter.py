@@ -63,6 +63,9 @@ def parse_lines(lines):
     nres = extract_val(lines, '- renewable', 'Unable to extract number of resources!')
     durations, demands = extract_job_attributes(lines)
     data = {
+        'numjobs': njobs,
+        'numperiods': nperiods,
+        'numresources': nres,
         'durations': durations,
         'demands': demands,
         'capacities': extract_resource_capacities(lines),
@@ -71,11 +74,19 @@ def parse_lines(lines):
     return data
 
 
-def write_data_to_gams_file(data, fn):
-    with open(fn, 'w') as fp:
-        # TODO: Implement me!
-        # Also call GAMS for gdx conversion on this gams file!
-        pass
+def write_data_to_gams_file(data, instname):
+    with open(instname+'.gms', 'w') as fp:
+        ostr = 'sets\n'
+        ostr += 'j /j1*j' + str(data['numjobs']) + '/\n'
+        ostr += 't /t1*t' + str(data['numperiods']) + '/\n'
+        ostr += 'r /r1*r' + str(data['numresources']) + '/;\n'
+        ostr += 'alias(j,i);\nalias(t,tau);\n'
+        ostr += 'sets\n'
+        ostr += 'pred(i,j);\n'
+        ostr += 'parameters\nzmax(r)\nkappa(r)\ncapacities(r)\ndurations(j)\nu(t)\nefts(j)\nlfts(j)\n'
+        ostr += 'demands(j,r)\nseedsol(j);\n'
+        ostr += 'execute_unload \''+instname+'.gdx\' '
+        fp.write(ostr)
 
 
 def convert_file(smfilename):
@@ -85,7 +96,7 @@ def convert_file(smfilename):
         data = parse_lines(lines)
         with open(instname + '.json', 'w') as jsonfp:
             jsonfp.write(json.dumps(data, sort_keys=True, indent=4, separators=(',', ': ')))
-        write_data_to_gams_file(data, instname + '.gms')
+        write_data_to_gams_file(data, instname)
 
 
 EXAMPLE_PROJECT = '''
