@@ -1,10 +1,10 @@
 RESULT_SUFFIX = 'Results.txt'
 
 def composeResultFiles():
-    rfiles = ['GMS_CPLEX_', 'BranchAndBound']
-    for i in range(6): rfiles.append('GA' + str(i))
-    for i in range(6): rfiles.append('LocalSolverNative' + str(i))
-    return list(map(lambda rf: rf + RESULT_SUFFIX, rfiles))
+    rfiles = ['Gurobi']
+    for i in [0, 3, 4, 6]: rfiles.append('GA' + str(i))
+    for i in [0, 3, 4, 6]: rfiles.append('LocalSolverNative' + str(i))
+    return list(map(lambda rf: rf + RESULT_SUFFIX, rfiles)) + ['../GMS_CPLEX_Results.txt']
 
 
 def parseColumn(fn, ix):
@@ -19,7 +19,20 @@ def parseColumn(fn, ix):
 def parseInstances(fn): return parseColumn(fn, 0)
 
 
-def parseResults(fn): return parseColumn(fn, 1)
+def parseResults(fn):
+    if fn == '../GMS_CPLEX_Results.txt':
+        instances = parseInstances('GA0Results.txt')
+        results = []
+        with open('../GMS_CPLEX_Results.txt', 'r') as fp:
+            lines = fp.readlines()
+            for instance in instances:
+                for line in lines:
+                    if line.split(';')[0] == instance:
+                        results.append(line.split(';')[1].replace('\n', ''))
+                        break
+        return results
+
+    return parseColumn(fn, 1)
 
 
 rfiles = composeResultFiles()

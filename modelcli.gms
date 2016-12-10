@@ -1,4 +1,6 @@
 $ontext
+example parameters: --instname=QBWLBeispiel.sm --iterlim=99999 --timelimit=99999 --solver=CPLEX --trace=0 --nthreads=1 --outpath=j30_1337secs
+
 STj=tk bzw. FTj=tk bedeutet, dass AG j am Ende von Periode k anfängt bzw. beginnt.
 tk als Zeitpunkt interpretiert bedeutet also Ende der Periode k.
 $offtext
@@ -7,7 +9,7 @@ $eolcom §
 
 *$set instname ProjectStructureData
 
-*$setglobal use_seed
+$setglobal use_seed
 
 options OPTCR = 0
         MIP = %solver%
@@ -101,6 +103,7 @@ modelstat = rcpspoc.modelstat;
 *execute_unload '%instname%_results.gdx' x.l x.m z.l z.m profit.l profit.m solvetime slvstat modelstat;
 *display z.l;
 
+$ontext
 file fp /%outpath%myschedule.txt/;
 put fp;
 scalar stj;
@@ -115,8 +118,10 @@ file fpprof /%outpath%myprofit.txt/;
 put fpprof;
 put profit.l;
 putclose fpprof;
+$offtext
 
-file fpres /%outpath%_GMS_%solver%_Results.txt/;
+*file fpres /%outpath%_GMS_%solver%_Results.txt/;
+file fpres /GMS_%solver%_Results.txt/;
 fpres.ap = 1;
 put fpres;
 if(modelstat = 1 and slvstat = 1,
