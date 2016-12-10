@@ -8,22 +8,66 @@ import unittest
 
 
 def show_usage():
-    print('Wrong number of arguments!\n' +
-          'Usage: ./psplibconverter.py smfilename')
+    print('Wrong number of arguments!\nUsage: ./psplibconverter.py smfilename')
 
 
 def extract_val(lines, line_prefix, exception_msg, sep=':'):
     for line in lines:
-        if line.startswith(line_prefix):
+        if line.strip().startswith(line_prefix):
             return int(re.sub('\D', '', line.split(sep)[1]))
     raise Exception(exception_msg)
 
+def index_of_line_starting_with(prefix, lines):
+    ctr = 0
+    for line in lines:
+        if line.startswith(prefix):
+            return ctr
+        ctr += 1
+    raise Exception('No line starting with prefix: ' + prefix + ' found in list!')
+
+def extract_adj_mx(lines):
+    global adjMx
+    ix = index_of_line_starting_with('PRECEDENCE RELATIONS:', lines)
+    adjMx = [[0 for i in range(njobs)] for j in range(njobs)]
+    for line in lines[ix + 2:ix + 2 + njobs]:
+        parts = line.split()
+        j = int(parts[0])
+        succs = parts[3:]
+        for succ in succs:
+            adjMx[j - 1][int(succ) - 1] = 1
+    return adjMx
+
+
+def extract_job_attributes(lines):
+    ix = index_of_line_starting_with('REQUESTS/DURATIONS:', lines)
+    durations = [0 for i in range(njobs)]
+    demands = [[0 for r in range(njobs)] for j in range(nres)]
+    for line in lines[ix + 3:ix + 3 + njobs]:
+        parts = line.split()
+        j = int(parts[0])
+        durations[j - 1] = int(parts[2])
+        for r in range(nres):
+            demands[r][j - 1] = int(parts[3 + r])
+    return durations, demands
+
+
+def extract_resource_capacities(lines):
+    ix = index_of_line_starting_with('RESOURCEAVAILABILITIES', lines)
+    return list(map(lambda capstr: int(capstr), lines[ix+2].split()))
+
 
 def parse_lines(lines):
+    global njobs, nperiods, nres
     njobs = extract_val(lines, 'jobs (incl. supersource/sink', 'Unable to extract number of jobs!')
     nperiods = extract_val(lines, 'horizon', 'Unable to extract number of time periods!')
-    nres = extract_val(lines, ' - renewable', 'Unable to extract number of resources!')
-    data = {}
+    nres = extract_val(lines, '- renewable', 'Unable to extract number of resources!')
+    durations, demands = extract_job_attributes(lines)
+    data = {
+        'durations': durations,
+        'demands': demands,
+        'capacities': extract_resource_capacities(lines),
+        'adjacencyMatrix': extract_adj_mx(lines)
+    }
     return data
 
 
@@ -41,7 +85,7 @@ def convert_file(smfilename):
         data = parse_lines(lines)
         with open(instname + '.json', 'w') as jsonfp:
             jsonfp.write(json.dumps(data, sort_keys=True, indent=4, separators=(',', ': ')))
-        write_data_to_gams_file(data, instname+'.gms')
+        write_data_to_gams_file(data, instname + '.gms')
 
 
 EXAMPLE_PROJECT = '''
