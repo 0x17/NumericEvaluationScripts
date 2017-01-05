@@ -1,8 +1,8 @@
 import os
 import numpy
 
-NUM_SECONDS = 30
-SET_NAME = 'j30'
+NUM_SECONDS = 60
+SET_NAME = 'j120'
 RESULTS_DIR = './'+SET_NAME+'_'+str(NUM_SECONDS)+'secs/'
 OPTS_EXIST = True
 
@@ -13,8 +13,8 @@ OPTS_EXIST = True
 optimalObjectives = {}
 
 #REF_RESULTSFILE = RESULTS_DIR + 'REF_GMS_CPLEX_Results.txt'
-#REF_RESULTSFILE = 'GA4Results_Ref1800secs.txt'
-REF_RESULTSFILE = 'GMS_CPLEX_Results.txt'
+REF_RESULTSFILE = 'GA4Results_Ref1800secs.txt'
+#REF_RESULTSFILE = 'GMS_CPLEX_Results.txt'
 
 if OPTS_EXIST:
     with open(REF_RESULTSFILE, 'r') as fp:

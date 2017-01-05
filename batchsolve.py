@@ -160,12 +160,13 @@ class HeuristicMethods:
 
 	@staticmethod
 	def heuristics(pfn, fn, ctr, num_entries):
-		# ExactMethods.solve_with_gurobi(pfn, True)
-		# Common.show_progress(fn, ctr, num_entries)
-		# HeuristicMethods.solve_with_selected_ga(pfn, [0, 3, 4, 6], True)
-		# Common.show_progress(fn, ctr, num_entries)
-		HeuristicMethods.solve_with_selected_native_ls(pfn, [0, 3, 4], True)
+		ExactMethods.solve_with_gurobi(pfn, True)
 		Common.show_progress(fn, ctr, num_entries)
+		# HeuristicMethods.solve_with_selected_ga(pfn, [0, 3, 4, 6], True)
+		#HeuristicMethods.solve_with_selected_ga(pfn, [6], True)
+		#Common.show_progress(fn, ctr, num_entries)
+		#HeuristicMethods.solve_with_selected_native_ls(pfn, [0, 3, 4], True)
+		#Common.show_progress(fn, ctr, num_entries)
 
 
 class InstanceFiltering:
@@ -270,7 +271,7 @@ class Runner:
 			if args[1] == 'batch':
 				dirname, timelimit, iterlimit = argtuple
 				Runner.set_global_identifiers(dirname, timelimit)
-				Common.batch_solve(dirname, choose_method_type_fn(), True)
+				Common.batch_solve(dirname, choose_method_type_fn(), False)
 		else:
 			Runner.show_usage()
 

@@ -56,7 +56,7 @@ equations
                 oclimits    Beschränke buchbare ZK;
 
 objective                 .. profit =e= sum(j$lastJob(j), sum(t$tw(j,t), x(j,t)*u(t)))-sum(r, sum(t, z(r,t)*kappa(r)));
-precedence(i,j)$pred(i,j) .. sum(t$tw(i,t), ord(t)*x(i,t)) =l= sum(t$tw(j,t), ord(t)*x(j,t)) - durations(j);
+precedence(i,j)$pred(i,j) .. sum(t$tw(i,t), (ord(t)-1)*x(i,t)) =l= sum(t$tw(j,t), (ord(t)-1)*x(j,t)) - durations(j);
 resusage(r,t)             .. sum(j$actual(j), demands(j,r)*sum(tau$fw(j,t,tau), x(j,tau))) =l= capacities(r) + z(r,t);
 once(j)                   .. sum(t$tw(j,t), x(j,t)) =e= 1;
 oclimits(r,t)             .. z(r,t) =l= zmax(r);
@@ -68,7 +68,7 @@ $GDXIN %instname%.gdx
 $load j t r zmax kappa capacities durations u efts lfts demands pred seedsol
 $GDXIN
 
-tw(j, t)$(efts(j) <= ord(t) and ord(t) <= lfts(j)) = yes;
+tw(j, t)$(efts(j) <= (ord(t)-1) and (ord(t)-1) <= lfts(j)) = yes;
 actual(j)$(1 < ord(j) and ord(j) < card(j)) = yes;
 lastJob(j)$(ord(j) = card(j)) = yes;
 fw(j, t, tau)$(ord(tau)>=ord(t) and ord(tau)<=ord(t)+durations(j)-1 and tw(j,tau)) = yes;

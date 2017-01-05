@@ -56,20 +56,29 @@ def extract_resource_capacities(lines):
     return list(map(lambda capstr: int(capstr), lines[ix+2].split()))
 
 
+def compute_revenue_function(durations, adj_mx, demands, capacities):
+    return None
+
+
 def parse_lines(lines):
     global njobs, nperiods, nres
     njobs = extract_val(lines, 'jobs (incl. supersource/sink', 'Unable to extract number of jobs!')
     nperiods = extract_val(lines, 'horizon', 'Unable to extract number of time periods!')
     nres = extract_val(lines, '- renewable', 'Unable to extract number of resources!')
     durations, demands = extract_job_attributes(lines)
+    capacities = extract_resource_capacities(lines)
+    adj_mx = extract_adj_mx(lines)
     data = {
         'numjobs': njobs,
         'numperiods': nperiods,
         'numresources': nres,
         'durations': durations,
         'demands': demands,
-        'capacities': extract_resource_capacities(lines),
-        'adjacencyMatrix': extract_adj_mx(lines)
+        'capacities': capacities,
+        'adjacencyMatrix': adj_mx,
+        'kappa': 0.5,
+        'zmax': list(map(lambda cap: cap * 0.5, capacities))
+        'u': compute_revenue_function(durations, adj_mx, demands, capacities)
     }
     return data
 
@@ -83,7 +92,9 @@ def write_data_to_gams_file(data, instname):
         ostr += 'alias(j,i);\nalias(t,tau);\n'
         ostr += 'sets\n'
         ostr += 'pred(i,j);\n'
-        ostr += 'parameters\nzmax(r)\nkappa(r)\ncapacities(r)\ndurations(j)\nu(t)\nefts(j)\nlfts(j)\n'
+        ostr += 'parameters\n'
+        ostr += 'zmax(r) //\n'
+        ostr += 'kappa(r)\ncapacities(r)\ndurations(j)\nu(t)\nefts(j)\nlfts(j)\n'
         ostr += 'demands(j,r)\nseedsol(j);\n'
         ostr += 'execute_unload \''+instname+'.gdx\' '
         fp.write(ostr)
