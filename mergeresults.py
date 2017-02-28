@@ -1,10 +1,13 @@
 RESULT_SUFFIX = 'Results.txt'
 
+additionalResultFile = ['../GA4Results_Ref1800secs.txt']
+#additionalResultFile = ['../GMS_CPLEX_Results.txt']
+
 def composeResultFiles():
     rfiles = ['Gurobi']
     for i in [0, 3, 4, 6]: rfiles.append('GA' + str(i))
     for i in [0, 3, 4, 6]: rfiles.append('LocalSolverNative' + str(i))
-    return list(map(lambda rf: rf + RESULT_SUFFIX, rfiles)) + ['GA4Results_Ref1800secs.txt'] # + ['../GMS_CPLEX_Results.txt']
+    return list(map(lambda rf: rf + RESULT_SUFFIX, rfiles)) + additionalResultFile
 
 
 def parseColumn(fn, ix):

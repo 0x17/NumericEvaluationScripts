@@ -1,10 +1,28 @@
 import os
 import numpy
 
-NUM_SECONDS = 60
-SET_NAME = 'j120'
-RESULTS_DIR = './'+SET_NAME+'_'+str(NUM_SECONDS)+'secs/'
-OPTS_EXIST = True
+SMALL_PROJECTS = True
+
+if SMALL_PROJECTS:
+    REF_RESULTSFILE = 'GMS_CPLEX_Results.txt'
+    NUM_SECONDS = 30
+    SET_NAME = 'j30'
+    OPTS_EXIST = True
+else:
+    REF_RESULTSFILE = 'GA4Results_Ref1800secs.txt'
+    NUM_SECONDS = 60
+    SET_NAME = 'j120'
+    OPTS_EXIST = False
+
+RESULTS_DIR = './' + SET_NAME + '_' + str(NUM_SECONDS) + 'secs/'
+
+ROUND_RESULTS = True
+ROUNDING_PRECISION = 4
+
+
+def round_if_needed(x):
+    return round(x, ROUNDING_PRECISION) if ROUND_RESULTS else x
+
 
 ###############################################################
 # GLOBALS
@@ -12,9 +30,8 @@ OPTS_EXIST = True
 
 optimalObjectives = {}
 
-#REF_RESULTSFILE = RESULTS_DIR + 'REF_GMS_CPLEX_Results.txt'
-REF_RESULTSFILE = 'GA4Results_Ref1800secs.txt'
-#REF_RESULTSFILE = 'GMS_CPLEX_Results.txt'
+# REF_RESULTSFILE = RESULTS_DIR + 'REF_GMS_CPLEX_Results.txt'
+# REF_RESULTSFILE = 'GMS_CPLEX_Results.txt'
 
 if OPTS_EXIST:
     with open(REF_RESULTSFILE, 'r') as fp:
@@ -23,7 +40,22 @@ if OPTS_EXIST:
             optimalObjectives[parts[0]] = float(parts[1])
 
 trace_suffix = 'Trace_'
-methodPrefixes = list(map(lambda mpf: mpf + trace_suffix, ['Gurobi', 'GATimeWindowBordersGA', 'GAFixedCapacityGA', 'GATimeVaryingCapacityGA', 'GAGoldenCutSearchGA', 'LocalSolverNative0', 'LocalSolverNative3', 'LocalSolverNative4', 'LocalSolverNative6']))
+methodPrefixes = list(map(lambda mpf: mpf + trace_suffix,
+                          ['Gurobi', 'GATimeWindowBordersGA', 'GAFixedCapacityGA', 'GATimeVaryingCapacityGA',
+                           'GAGoldenSectionSearchGA', 'LocalSolverNative0', 'LocalSolverNative3', 'LocalSolverNative4',
+                           'LocalSolverNative6']))
+
+methodPrefixToResultFile = {
+    'GurobiTrace_': 'GurobiResults.txt',
+    'GATimeWindowBordersGATrace_': 'GA0Results.txt',
+    'GAFixedCapacityGATrace_': 'GA3Results.txt',
+    'GATimeVaryingCapacityGATrace_': 'GA4Results.txt',
+    'GAGoldenSectionSearchGATrace_': 'GA6Results.txt',
+    'LocalSolverNative0Trace_': 'LocalSolverNative0Results.txt',
+    'LocalSolverNative3Trace_': 'LocalSolverNative3Results.txt',
+    'LocalSolverNative4Trace_': 'LocalSolverNative4Results.txt',
+    'LocalSolverNative6Trace_': 'LocalSolverNative6Results.txt',
+}
 
 ###############################################################
 # METHODS
@@ -32,6 +64,8 @@ lines_cache = {}
 
 results_files = list(map(lambda fn: RESULTS_DIR + fn,
                          list(filter(lambda fn: fn.endswith('Results.txt'), list(os.listdir(RESULTS_DIR))))))
+# only j120
+if not OPTS_EXIST: results_files += [REF_RESULTSFILE]
 
 
 def extract_profit_for_instance(instance_name, lines):
@@ -39,7 +73,7 @@ def extract_profit_for_instance(instance_name, lines):
         parts = line.split(';')
         if parts[0] == instance_name:
             return float(parts[1])
-    return 0.0
+    return None
 
 
 def best_known_solution_for_instance(instance_name):
@@ -47,16 +81,20 @@ def best_known_solution_for_instance(instance_name):
     for rfn in results_files:
         with open(rfn, 'r') as rfp:
             obj = extract_profit_for_instance(instance_name, rfp.readlines())
-            if obj >= best_obj:
+            if obj is None:
+                return None
+            elif obj >= best_obj:
                 best_obj = obj
     return best_obj
 
 
 if not (OPTS_EXIST):
-    with open(RESULTS_DIR + 'GA0Results.txt') as fp:
+    with open(REF_RESULTSFILE) as fp:
         for line in fp.readlines():
             parts = line.split(';')
-            optimalObjectives[parts[0].replace(SET_NAME+'/', '')] = best_known_solution_for_instance(parts[0])
+            bks = best_known_solution_for_instance(parts[0])
+            if bks is not None:
+                optimalObjectives[parts[0].replace(SET_NAME + '/', '')] = bks
 
 
 def readlines_cached(filename):
@@ -74,7 +112,7 @@ def trace_filename_to_instance_name(method_prefix, filename):
 
 def gap_in_cplex_trace_file_in_second(filename, sec):
     instance_name = trace_filename_to_instance_name('CPLEXTrace_', filename)
-    optimal_profit = round(optimalObjectives[instance_name], 3)
+    optimal_profit = round_if_needed(optimalObjectives[instance_name])
     last_profit = 0.0
     lines = readlines_cached(filename)
     for line in lines[1:]:
@@ -82,10 +120,14 @@ def gap_in_cplex_trace_file_in_second(filename, sec):
         parts = line.split(',')
         colsec = float(parts[3])
         if colsec > sec:
-            return (optimal_profit - last_profit) / optimal_profit
+            return compute_gap(last_profit, optimal_profit)
         best_entry = parts[4] if parts[4].strip() != 'na' else '0.0'
-        last_profit = round(float(best_entry), 3)
-    return (optimal_profit - last_profit) / optimal_profit
+        last_profit = round_if_needed(float(best_entry))
+    return compute_gap(last_profit, optimal_profit)
+
+
+def compute_gap(profit, opt_profit):
+    return max(0.0, (opt_profit - profit) / opt_profit)
 
 
 def gap_in_trace_file_in_second(methodPrefix, filename, sec):
@@ -94,22 +136,27 @@ def gap_in_trace_file_in_second(methodPrefix, filename, sec):
 
     instance_name = trace_filename_to_instance_name(methodPrefix, filename)
 
-    optimal_profit = round(optimalObjectives[instance_name], 3)
+    optimal_profit = round_if_needed(optimalObjectives[instance_name])
     last_profit = 0.0
     lines = readlines_cached(filename)
     for line in lines[1:]:
         parts = line.split(',')
         colsec = float(parts[0])
         if colsec > sec:
-            return (optimal_profit - last_profit) / optimal_profit
-        last_profit = round(float(parts[1]), 3)
-    return (optimal_profit - last_profit) / optimal_profit
+            return compute_gap(last_profit, optimal_profit)
+        last_profit = round_if_needed(float(parts[1]))
+
+    if sec == NUM_SECONDS:
+        last_profit = round_if_needed(extract_profit_for_instance(instance_name, readlines_cached(methodPrefixToResultFile[methodPrefix])))
+
+    return compute_gap(last_profit, optimal_profit)
 
 
 def average_gap_of_method_in_second(method_prefix, sec):
     all_rfiles = list(os.listdir(RESULTS_DIR))
     trace_files = list(filter(lambda fn: fn.startswith(method_prefix) and fn.endswith('.txt'), all_rfiles))
-    trace_files_opt_exists = trace_files if not OPTS_EXIST else list(filter(lambda fn: trace_filename_to_instance_name(method_prefix, fn) in optimalObjectives, trace_files))
+    trace_files_opt_exists = list(
+        filter(lambda fn: trace_filename_to_instance_name(method_prefix, fn) in optimalObjectives, trace_files))
     gaps = list(map(lambda tfile: gap_in_trace_file_in_second(method_prefix, tfile, sec), trace_files_opt_exists))
     average_gap = sum(gaps) / len(gaps)
     return average_gap
@@ -145,7 +192,7 @@ def serialize_list_to_csv():
         out_str += '\n'
     with open('mergedtraces.csv', 'w') as fp:
         fp.write(header_line + '\n')
-        fp.write(out_str.replace('.', ','))
+        fp.write(out_str)  # .replace('.', ','))
 
 
 serialize_list_to_csv()

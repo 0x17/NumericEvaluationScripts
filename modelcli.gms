@@ -125,6 +125,6 @@ file fpres /GMS_%solver%_Results.txt/;
 fpres.ap = 1;
 put fpres;
 if(modelstat = 1 and slvstat = 1,
-  put '%instname%' ';':1 round(profit.l,4):<99:4 /;
+  put '%instname%' ';':1 round(profit.l,6):<99:6 /;
 else);
 putclose fpres
