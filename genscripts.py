@@ -23,17 +23,20 @@ cd $PBS_O_WORKDIR
 python batchGAMSrng.py MODEL_FILENAME j30gdx START_IX END_IX
 """
 
+
 def gen_script(modelFilename, six, eix):
-	script_contents = contents.replace("START_IX", str(six)).replace("END_IX", str(eix)).replace("MODEL_FILENAME", modelFilename)
-	with open("solvescript"+str(six)+"-"+str(eix)+"_generated.sh", "w") as fp:
-		fp.write(script_contents)
+    script_contents = contents.replace("START_IX", str(six)).replace("END_IX", str(eix)).replace("MODEL_FILENAME",
+                                                                                                 modelFilename)
+    with open("solvescript" + str(six) + "-" + str(eix) + "_generated.sh", "w") as fp:
+        fp.write(script_contents)
+
 
 modelFilename = sys.argv[1]
 jobsize = int(sys.argv[2])
 NUM_PROJS = 329
 six = 0
 while six < NUM_PROJS:
-	eix = six + jobsize - 1
-	if eix >= NUM_PROJS: eix = NUM_PROJS - 1
-	gen_script(modelFilename, six, eix)		
-	six = eix + 1
+    eix = six + jobsize - 1
+    if eix >= NUM_PROJS: eix = NUM_PROJS - 1
+    gen_script(modelFilename, six, eix)
+    six = eix + 1

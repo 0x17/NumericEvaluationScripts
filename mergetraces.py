@@ -1,7 +1,7 @@
 import os
 import numpy
 
-SMALL_PROJECTS = True
+SMALL_PROJECTS = False
 
 if SMALL_PROJECTS:
     REF_RESULTSFILE = 'GMS_CPLEX_Results.txt'
@@ -10,7 +10,7 @@ if SMALL_PROJECTS:
     OPTS_EXIST = True
 else:
     REF_RESULTSFILE = 'GA4Results_Ref1800secs.txt'
-    NUM_SECONDS = 60
+    NUM_SECONDS = 120
     SET_NAME = 'j120'
     OPTS_EXIST = False
 
@@ -41,20 +41,18 @@ if OPTS_EXIST:
 
 trace_suffix = 'Trace_'
 methodPrefixes = list(map(lambda mpf: mpf + trace_suffix,
-                          ['Gurobi', 'GATimeWindowBordersGA', 'GAFixedCapacityGA', 'GATimeVaryingCapacityGA',
-                           'GAGoldenSectionSearchGA', 'LocalSolverNative0', 'LocalSolverNative3', 'LocalSolverNative4',
-                           'LocalSolverNative6']))
+                          ['Gurobi',
+                           'GATimeWindowBordersGA', 'GAFixedCapacityGA', 'GATimeVaryingCapacityGA',
+                           'LocalSolverNative0', 'LocalSolverNative3', 'LocalSolverNative4']))
 
 methodPrefixToResultFile = {
     'GurobiTrace_': 'GurobiResults.txt',
     'GATimeWindowBordersGATrace_': 'GA0Results.txt',
     'GAFixedCapacityGATrace_': 'GA3Results.txt',
     'GATimeVaryingCapacityGATrace_': 'GA4Results.txt',
-    'GAGoldenSectionSearchGATrace_': 'GA6Results.txt',
     'LocalSolverNative0Trace_': 'LocalSolverNative0Results.txt',
     'LocalSolverNative3Trace_': 'LocalSolverNative3Results.txt',
     'LocalSolverNative4Trace_': 'LocalSolverNative4Results.txt',
-    'LocalSolverNative6Trace_': 'LocalSolverNative6Results.txt',
 }
 
 ###############################################################
@@ -64,8 +62,11 @@ lines_cache = {}
 
 results_files = list(map(lambda fn: RESULTS_DIR + fn,
                          list(filter(lambda fn: fn.endswith('Results.txt'), list(os.listdir(RESULTS_DIR))))))
+
+
 # only j120
-if not OPTS_EXIST: results_files += [REF_RESULTSFILE]
+if not OPTS_EXIST:
+    results_files += [REF_RESULTSFILE]
 
 
 def extract_profit_for_instance(instance_name, lines):
@@ -147,7 +148,8 @@ def gap_in_trace_file_in_second(methodPrefix, filename, sec):
         last_profit = round_if_needed(float(parts[1]))
 
     if sec == NUM_SECONDS:
-        last_profit = round_if_needed(extract_profit_for_instance(instance_name, readlines_cached(methodPrefixToResultFile[methodPrefix])))
+        last_profit = round_if_needed(
+            extract_profit_for_instance(instance_name, readlines_cached(methodPrefixToResultFile[methodPrefix])))
 
     return compute_gap(last_profit, optimal_profit)
 

@@ -77,7 +77,7 @@ def parse_lines(lines):
         'capacities': capacities,
         'adjacencyMatrix': adj_mx,
         'kappa': 0.5,
-        'zmax': list(map(lambda cap: cap * 0.5, capacities))
+        'zmax': list(map(lambda cap: cap * 0.5, capacities)),
         'u': compute_revenue_function(durations, adj_mx, demands, capacities)
     }
     return data

@@ -21,9 +21,11 @@ cd $PBS_O_WORKDIR
 python cluster_batchsolve.py batch j120_INDEX 1800 -1
 """
 
+
 def gen_script(index):
-	script_contents = contents.replace('INDEX', str(index))
-	with open("solvescript"+str(index)+"_generated.sh", "w") as fp:
-		fp.write(script_contents)
-        
-for i in range(60): gen_script(i+1)
+    script_contents = contents.replace('INDEX', str(index))
+    with open("solvescript" + str(index) + "_generated.sh", "w") as fp:
+        fp.write(script_contents)
+
+
+for i in range(60): gen_script(i + 1)

@@ -83,7 +83,7 @@ class ExactMethods:
 
     @staticmethod
     def gurobi_already_solved(instance_name, results_filename):
-        def line_contains_instance_name(line): line.strip() == Common.core_of_instance_name(instance_name)
+        def line_contains_instance_name(line): return line.strip() == Common.core_of_instance_name(instance_name)
 
         return ExactMethods.already_solved(instance_name, results_filename, line_contains_instance_name)
 
