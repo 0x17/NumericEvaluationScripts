@@ -56,23 +56,24 @@ def build_opt_lookup(fn):
 def write_obj_values_for_limits(method_name):
     opath = 'ObjectiveValuesForScheduleLimits/'
     enforce_dir(opath)
-    write_obj_values_for_limits.ostr = ''
+    ostr = ''
 
     opt_lookup = build_opt_lookup('../GMS_CPLEX_Results.txt')
 
     def process_file(fn):
+        nonlocal ostr
         actual_method_name, inst_name = method_and_inst_name_from_fn(fn)
         if actual_method_name == method_name:
             col = extract_column_from_csv_file(fn, 1, 2)
             entries = [inst_name] + col
-            write_obj_values_for_limits.ostr += ';'.join(entries) + ';' + opt_lookup[inst_name] + '\n'
+            ostr += ';'.join(entries) + ';' + opt_lookup[inst_name] + '\n'
 
     iterate_over_tracefiles(process_file)
 
     header_line = 'instance;' + ';'.join(list(map(lambda i: str(i), slimits))) + ';CPLEX\n'
 
     with open(opath + method_name + '_slimits.txt', 'w') as fp:
-        fp.write(header_line + sort_by_instance_name(write_obj_values_for_limits.ostr).replace('.', ','))
+        fp.write(header_line + sort_by_instance_name(ostr).replace('.', ','))
 
 
 def collect_method_names_from_directory(path):
@@ -94,7 +95,100 @@ def batch_write_obj_values_for_limits(path):
         write_obj_values_for_limits(method_name)
 
 
-batch_write_obj_values_for_limits('.')
+def merge_obj_values_for_limits():
+    def collect_lines(path):
+        method_lines = {}
+        for fn in os.listdir(path):
+            if fn.endswith('_slimits.txt'):
+                method_name = fn.split('_')[0]
+                with open(opath + '/' + fn) as fp:
+                    lines = fp.readlines()
+                    method_lines[method_name] = lines
+        return method_lines
+
+    opath = 'ObjectiveValuesForScheduleLimits'
+    mlines = collect_lines(opath)
+
+    content_lines_of_first_method = next(iter(mlines.values()))[1:]
+    inst_names = list(map(lambda line: line.split(';')[0], content_lines_of_first_method))
+    opts = list(map(lambda line: line.split(';')[-1].rstrip(), content_lines_of_first_method))
+
+    ostr = ''
+    for ctr in range(len(inst_names)):
+        row_entries = [inst_names[ctr]]
+        for mname, mlinelst in mlines.items():
+            parts = mlinelst[1:][ctr].split(';')
+            row_entries += parts[1:-1]
+        ostr += ';'.join(row_entries + [opts[ctr]]) + '\n'
+
+    header_parts = []
+    for mname in mlines:
+        for slimit in slimits:
+            header_parts.append(mname + '_' + str(slimit))
+    header_line = 'instance;' + ';'.join(header_parts) + ';CPLEX\n'
+
+    with open(opath + '/merged.txt', 'w') as fp:
+        fp.write(header_line + ostr)
+
+
+def add_to_key(dict, key, val):
+    dict[key] = val if key not in dict else dict[key] + val
+
+
+def average_num_plans_per_individual(method_name, slimit_row):
+    ostr = 'instance;nschedules;nindividuals;div\n'
+    divs = []
+
+    def process_file(fn):
+        nonlocal ostr
+        mname, iname = method_and_inst_name_from_fn(fn)
+        if mname == method_name:
+            nschedules = extract_column_from_csv_file(fn, 2, 2)[slimit_row].rstrip()
+            nindividuals = extract_column_from_csv_file(fn, 3, 2)[slimit_row].rstrip()
+            div = float(nschedules) / float(nindividuals)
+            ostr += iname + ';' + str(nschedules) + ';' + str(nindividuals) + ';' + str(div) + '\n'
+            divs.append(div)
+
+    iterate_over_tracefiles(process_file)
+    return ostr, divs
+
+
+def csv_to_matrix(csv_str, sep=';'):
+    lines = csv_str.split('\n')
+    mx = []
+    for line in lines:
+        mx.append(line.rstrip().split(sep))
+    return mx
+
+
+def transpose(mx):
+    tmx = []
+    for i in range(len(mx[0])):
+        row = []
+        for j in range(len(mx)):
+            row.append(mx[j][i])
+        tmx.append(row)
+    return tmx
+
+
+def batch_average_plans(path):
+    divstr = 'method;slimit;average_nschedules_per_individual\n'
+    method_names = collect_method_names_from_directory(path)
+    for slimit_row in range(len(slimits)):
+        for method_name in method_names:
+            ostr, divs = average_num_plans_per_individual(method_name, slimit_row)
+            with open('avg_plans_' + method_name + '_' + str(slimits[slimit_row]) + 'schedules.txt', 'w') as fp:
+                fp.write(ostr)
+            divstr += method_name + ';' + str(slimits[slimit_row]) + ';' + str(float(sum(divs)) / float(len(divs))) + '\n'
+    with open('aggregated_divs.txt', 'w') as fp:
+        fp.write(divstr)
+
+
+batch_average_plans('.')
+
+
+# batch_write_obj_values_for_limits('.')
+# merge_obj_values_for_limits()
 
 
 def write_per_instance_times_and_frequencies():

@@ -4,16 +4,13 @@ import os
 import shutil
 
 SCHEDULE_LIMITS = [1000, 5000, 50000]
-CROSSOVER_METHODS = ['OPC', 'TPC']
-SELECTION_METHODS = ['best', 'duel']
 COMMON_PREFIX = 'j30_'
 COMMON_INFIX = 'schedules_'
 
 tuples = []
-for crossover_method in CROSSOVER_METHODS:
-    for selection_method in SELECTION_METHODS:
-        for lim in SCHEDULE_LIMITS:
-            tuples.append((crossover_method, selection_method, lim, COMMON_PREFIX + str(lim) + COMMON_INFIX + crossover_method + '_' + selection_method))
+for crossover_method, selection_method in [('OPC', 'duel'), ('TPC', 'best')]:
+    for lim in SCHEDULE_LIMITS:
+        tuples.append((crossover_method, selection_method, lim, COMMON_PREFIX + str(lim) + COMMON_INFIX + crossover_method + '_' + selection_method))
 
 DEST_DIR = 'j30_vsmerged'
 RESULT_FN = 'GA4Results.txt'
