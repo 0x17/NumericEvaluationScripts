@@ -5,6 +5,23 @@ import shutil
 import json
 
 
+def maybe_read_json(fn):
+    if os.path.exists(fn):
+        with open(fn) as fp:
+            return json.load(fp)
+    else:
+        return {}
+
+
+def opt_or_default(opts, key, default):
+    return opts[key] if key in opts else default
+
+
+opts = maybe_read_json('options.json')
+combos = opt_or_default(opts, 'combos', [('TPC', 'best'), ('OPC', 'duel')])
+slimits = opt_or_default(opts, 'slimits', [1000, 5000, 50000])
+
+
 def my_system(s):
     print(s)
     os.system(s)
@@ -27,8 +44,8 @@ def my_write(fp, s):
 
 
 # OPC best sind standard ergebnisse j30 slimit
-for crossover_scheme, selection_scheme in [('TPC', 'best'), ('OPC', 'duel')]:
-    for nschedules in [1000, 5000, 50000]:
+for crossover_scheme, selection_scheme in combos:
+    for nschedules in slimits:
         with open('GAParameters.json', 'w') as fp:
             obj = {'selectionMethod': selection_scheme, 'crossoverMethod': crossover_scheme}
             my_write(fp, json.dumps(obj, indent=4, sort_keys=True))

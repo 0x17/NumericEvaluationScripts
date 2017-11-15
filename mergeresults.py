@@ -1,13 +1,18 @@
-# j120
-#additionalResultFile = ['../GA4Results_Ref1800secs.txt']
-# j30
-additionalResultFile = ['../GMS_CPLEX_Results.txt']
-# additionalResultFile = []
+import os
+import sys
+
+
+def arg_passed(arg):
+    return not [carg for carg in sys.argv if carg == arg]
+
+
+versus_comparison = arg_passed('vs')
+big_instances = arg_passed('j120')
 
 RESULT_SUFFIX = 'Results.txt'
-#REFERENCE_INSTANCE = 'GA0Results.txt'
-REFERENCE_INSTANCE = 'GA4Results_OPC_duel_1000.txt'
-# REFERENCE_INSTANCE = 'GA4Results_best_1000.txt'
+additionalResultFile = ['../GA4Results_Ref1800secs.txt'] if big_instances else ['../GMS_CPLEX_Results.txt']
+# additionalResultFile = []
+REFERENCE_INSTANCE = 'GA4Results_OPC_duel_1000.txt' if versus_comparison else 'GA0Results.txt'
 
 
 def compose_result_files():
@@ -21,11 +26,19 @@ def compose_result_files():
 
 def compose_result_files_for_vs_comparison():
     result_files = []
-    for lim in [1000, 5000, 50000]:
-        for crossover_method, selection_method in [('OPC', 'duel'), ('TPC', 'best')]:
-            result_files.append('GA4Results_' + crossover_method + '_' + selection_method + '_' + str(lim) + '.txt')
-    result_files.append('../GMS_CPLEX_Results.txt')
-    return result_files
+
+    # combos = [('OPC', 'duel'), ('TPC', 'best')]
+    combos = [(crossover_method, selection_method) for crossover_method in ['OPC', 'TPC'] for selection_method in
+              ['best', 'duel']]
+    slimits = [1000, 5000, 50000, 100000]
+
+    for lim in slimits:
+        for crossover_method, selection_method in combos:
+            fname = 'GA4Results_' + crossover_method + '_' + selection_method + '_' + str(lim) + '.txt'
+            if os.path.exists(fname):
+                result_files.append(fname)
+
+    return result_files + ['../GMS_CPLEX_Results.txt']
 
 
 def parse_column(fn, ix):
@@ -56,8 +69,7 @@ def parse_results(fn):
     return parse_column(fn, 1)
 
 
-#rfiles = compose_result_files()
-rfiles = compose_result_files_for_vs_comparison()
+rfiles = compose_result_files_for_vs_comparison() if versus_comparison else compose_result_files()
 resultlines = list(map(parse_results, rfiles))
 instances = parse_instances(rfiles[0])
 

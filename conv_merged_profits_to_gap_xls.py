@@ -94,7 +94,7 @@ def convert_to_xls(obj, out_fn):
 
 def convert_file(fn):
     assert (fn.endswith('.txt') or fn.endswith('.csv'))
-    fn_xls = fn.split('.')[-2] + '.xls'
+    fn_xls = fn.split('.')[-2] + '.xlsx'
     convert_to_xls(InputData(fn), fn_xls)
 
 

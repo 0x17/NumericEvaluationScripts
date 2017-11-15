@@ -1,7 +1,8 @@
 import os
+import sys
 import numpy
 
-SMALL_PROJECTS = False
+SMALL_PROJECTS = (len(sys.argv) > 1 and sys.argv[1] == 'j30')
 
 if SMALL_PROJECTS:
     REF_RESULTSFILE = 'GMS_CPLEX_Results.txt'

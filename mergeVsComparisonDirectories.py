@@ -3,7 +3,7 @@
 import os
 import shutil
 
-SCHEDULE_LIMITS = [1000, 5000, 50000]
+SCHEDULE_LIMITS = [1000, 5000, 50000, 100000]
 COMMON_PREFIX = 'j30_'
 COMMON_INFIX = 'schedules_'
 
