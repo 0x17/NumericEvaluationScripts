@@ -5,7 +5,6 @@ result_directory_suffices = ['1000schedules', '5000schedules', '50000schedules']
 result_file_suffix = '/merged.txt'
 result_filenames = [ result_directory_prefix + suffix + result_file_suffix for suffix in result_directory_suffices ]
 
-
 def parse_result_matrix(fn):
     mx = []
     with open(fn, newline='') as fp:
