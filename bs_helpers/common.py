@@ -30,9 +30,7 @@ def batch_solve(directory_name, callback, only_optimally_solved=False):
     entries = os.listdir(directory_name)
 
     if filter_before:
-        actual_entries = list(
-            filter(lambda fn: instancefiltering.is_entry_relevant(directory_name, fn, only_optimally_solved),
-                   entries))
+        actual_entries = list(filter(lambda fn: instancefiltering.is_entry_relevant(directory_name, fn, only_optimally_solved), entries))
         if sys.argv[1] == 'batch': common.print_estimated_time(len(actual_entries))
     else:
         actual_entries = entries
