@@ -9,7 +9,7 @@ $eolcom §
 
 *$set instname ProjectStructureData
 
-$setglobal use_seed
+*$setglobal use_seed
 
 options OPTCR = 0
         MIP = %solver%
@@ -121,10 +121,14 @@ putclose fpprof;
 $offtext
 
 *file fpres /%outpath%_GMS_%solver%_Results.txt/;
-file fpres /GMS_%solver%_Results.txt/;
+*execute_unload 'DebugOutput.gdx'
+file fpres /GMS_%solver%_ExtendedResults.txt/;
 fpres.ap = 1;
 put fpres;
+scalar stj;
 if(modelstat = 1 and slvstat = 1,
-  put '%instname%' ';':1 round(profit.l,6):<99:6 /;
+*  put '%instname%' ';':1 round(profit.l,6):<99:6 /;
+* profit and solvetime
+  put '%instname%' round(profit.l,6)::6 solvetime;
 else);
 putclose fpres

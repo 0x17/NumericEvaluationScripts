@@ -3,7 +3,7 @@ import sys
 
 
 def arg_passed(arg):
-    return not [carg for carg in sys.argv if carg == arg]
+    return any(carg == arg for carg in sys.argv)
 
 
 versus_comparison = arg_passed('vs')
@@ -17,9 +17,9 @@ REFERENCE_INSTANCE = 'GA4Results_OPC_duel_1000.txt' if versus_comparison else 'G
 
 def compose_result_files():
     result_files = []  # ['Gurobi']
-    for ga_index in [0, 3, 4]:
+    for ga_index in [0, 3, 4, 8, 9]:
         result_files.append('GA' + str(ga_index))
-    for ls_index in [0, 3, 4]:
+    for ls_index in [0, 3, 4, 8, 9]:
         result_files.append('LocalSolverNative' + str(ls_index))
     return list(map(lambda rf: rf + RESULT_SUFFIX, result_files)) + additionalResultFile
 

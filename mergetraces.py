@@ -10,7 +10,8 @@ if SMALL_PROJECTS:
     SET_NAME = 'j30'
     OPTS_EXIST = True
 else:
-    REF_RESULTSFILE = 'GA4Results_Ref1800secs.txt'
+    #REF_RESULTSFILE = 'GA4Results_Ref1800secs.txt'
+    REF_RESULTSFILE = '../GA4Results_Ref1800secs.txt'
     NUM_SECONDS = 120
     SET_NAME = 'j120'
     OPTS_EXIST = False
@@ -66,8 +67,8 @@ results_files = list(map(lambda fn: RESULTS_DIR + fn,
 
 
 # only j120
-if not OPTS_EXIST:
-    results_files += [REF_RESULTSFILE]
+#if not OPTS_EXIST:
+#    results_files += [REF_RESULTSFILE]
 
 
 def extract_profit_for_instance(instance_name, lines):

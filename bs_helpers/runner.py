@@ -12,6 +12,8 @@ def show_usage():
 def set_global_identifiers(dirname, timelimit, iterlimit):
     globals.setName = dirname
     globals.outPath = globals.setName + '_' + (str(int(timelimit)) + 'secs/' if timelimit != -1 else str(int(iterlimit)) + 'schedules/')
+    globals.timelimit = timelimit
+    globals.iterlimit = iterlimit
     globals.scheduleFilename = globals.outPath + 'myschedule.txt'
     globals.profitFilename = globals.outPath + 'myprofit.txt'
     globals.skipfilePath = globals.outPath + 'plsdoskip'
