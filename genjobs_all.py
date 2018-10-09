@@ -2,6 +2,7 @@
 # Usage: ./genjobs_ga_vs_gurobi.py
 
 import os
+import sys
 import bs_helpers.instancefiltering
 
 contents = """
@@ -47,7 +48,11 @@ def write_script(set_name, fn, solvername):
 
 
 if __name__ == '__main__':
-    method_selection = ['GA0', 'GA3', 'GA4', 'Gurobi']
+    if len(sys.argv) <= 1:
+        print('Usage: python genjobs_all.py Method1 Method2 ...')
+        exit(0)
+    method_selection = sys.argv[1:]
+    #method_selection = ['GA0', 'GA3', 'GA4', 'Gurobi']
     res_cache = build_res_cache(method_selection)
     set_name = 'j120'
     for fn in [f for f in os.listdir(set_name) if f.endswith('.sm')]:
