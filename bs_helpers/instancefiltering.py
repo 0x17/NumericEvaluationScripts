@@ -23,4 +23,4 @@ def min_max_makespan_not_equal(fn):
 
 
 def is_entry_relevant(directory_name, fn, only_optimally_solved):
-    return fn.endswith('.sm') and min_max_makespan_not_equal(directory_name + '/' + fn) and (not only_optimally_solved or opt_exists(fn, 'GMS_CPLEX_Results.txt'))
+    return fn.endswith('.sm') or fn.endswith('.rcp') and min_max_makespan_not_equal(directory_name + '/' + fn) and (not only_optimally_solved or opt_exists(fn, 'GMS_CPLEX_Results.txt'))

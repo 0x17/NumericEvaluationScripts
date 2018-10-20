@@ -25,6 +25,9 @@ def print_estimated_time(num_instances):
 
 def batch_solve(directory_name, callback, only_optimally_solved=False):
     filter_before = False
+    # TODO: Remove =True for skip_filtering!
+    # TODO: Implement patterson format parser for validation Java tool!
+    skip_filtering = False
 
     ctr = 1
     entries = os.listdir(directory_name)
@@ -38,14 +41,18 @@ def batch_solve(directory_name, callback, only_optimally_solved=False):
     num_entries = len(actual_entries)
 
     for fn in actual_entries:
-        if filter_before or instancefiltering.is_entry_relevant(directory_name, fn, only_optimally_solved):
+        if skip_filtering or filter_before or instancefiltering.is_entry_relevant(directory_name, fn, only_optimally_solved):
             callback(directory_name + '/' + fn, fn, ctr, num_entries)
             ctr += 1
 
 
-def solve_with_method(method, instance_path, trace=False):
+# TODO: Remove =True for noskip!
+def solve_with_method(method, instance_path, trace=False, noskip=False):
     cmd = utils.os_command_str('Solver') + method + ' ' + str(globals.timelimit) + ' ' + str(globals.iterlimit) + ' ' + instance_path
     cmd += ' traceobj' if trace else ''
+    cmd += ' noskip' if noskip else ''
     print('Running: ' + cmd)
     utils.syscall(cmd)
+
+    # TODO: Implement patterson format parser for validation Java tool!
     validation.validate_schedule_and_profit(instance_path, method)
