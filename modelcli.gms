@@ -1,5 +1,6 @@
 $ontext
-example parameters: --instname=QBWLBeispiel.sm --iterlim=99999 --timelimit=99999 --solver=CPLEX --trace=0 --nthreads=1 --outpath=j30_1337secs
+Beispielhafter Aufruf für QBWLBeispiel.sm.gdx:
+gams modelcli.gms --instname=QBWLBeispiel.sm --iterlim=9999999 --timelimit=1337 --solver=GUROBI --trace=0 --nthreads=1 --outpath=j30_1337secs/
 
 STj=tk bzw. FTj=tk bedeutet, dass AG j am Ende von Periode k anfängt bzw. beginnt.
 tk als Zeitpunkt interpretiert bedeutet also Ende der Periode k.
@@ -8,7 +9,6 @@ $offtext
 $eolcom §
 
 *$set instname ProjectStructureData
-
 *$setglobal use_seed
 
 options OPTCR = 0
@@ -49,17 +49,15 @@ variables        z(r,t) Einheiten ZK von r in Periode t gebucht
                  profit Gewinn (Parabel);
 
 equations
-                objective   Weitere ZF
+                objective   ZF
                 precedence  Vorrangbeziehung durchsetzen
                 resusage    Ressourcenverbrauchsrestriktion
-                once        Jeden AG genau 1x einplanen
-                oclimits    Beschränke buchbare ZK;
+                once        Jeden AG genau 1x einplanen;
 
 objective                 .. profit =e= sum(j$lastJob(j), sum(t$tw(j,t), x(j,t)*u(t)))-sum(r, sum(t, z(r,t)*kappa(r)));
 precedence(i,j)$pred(i,j) .. sum(t$tw(i,t), (ord(t)-1)*x(i,t)) =l= sum(t$tw(j,t), (ord(t)-1)*x(j,t)) - durations(j);
 resusage(r,t)             .. sum(j$actual(j), demands(j,r)*sum(tau$fw(j,t,tau), x(j,tau))) =l= capacities(r) + z(r,t);
 once(j)                   .. sum(t$tw(j,t), x(j,t)) =e= 1;
-oclimits(r,t)             .. z(r,t) =l= zmax(r);
 
 model rcpspoc  /objective, precedence, resusage, once/;
 rcpspoc.optfile = %trace%;
@@ -68,10 +66,12 @@ $GDXIN %instname%.gdx
 $load j t r zmax kappa capacities durations u efts lfts demands pred seedsol
 $GDXIN
 
-tw(j, t)$(efts(j) <= (ord(t)-1) and (ord(t)-1) <= lfts(j)) = yes;
 actual(j)$(1 < ord(j) and ord(j) < card(j)) = yes;
 lastJob(j)$(ord(j) = card(j)) = yes;
+
+tw(j, t)$(efts(j) <= (ord(t)-1) and (ord(t)-1) <= lfts(j)) = yes;
 fw(j, t, tau)$(ord(tau)>=ord(t) and ord(tau)<=ord(t)+durations(j)-1 and tw(j,tau)) = yes;
+
 z.lo(r,t) = 0;
 z.up(r,t) = zmax(r);
 profit.lo = 0;
@@ -99,11 +99,9 @@ solvetime = rcpspoc.resusd;
 slvstat = rcpspoc.solvestat;
 modelstat = rcpspoc.modelstat;
 
-*$ontext
-*execute_unload '%instname%_results.gdx' x.l x.m z.l z.m profit.l profit.m solvetime slvstat modelstat;
-*display z.l;
+execute_unload '%instname%_results.gdx' x.l x.m z.l z.m profit.l profit.m solvetime slvstat modelstat;
 
-$ontext
+* output schedule and profit for validation tool 
 file fp /%outpath%myschedule.txt/;
 put fp;
 scalar stj;
@@ -118,17 +116,13 @@ file fpprof /%outpath%myprofit.txt/;
 put fpprof;
 put profit.l;
 putclose fpprof;
-$offtext
 
-*file fpres /%outpath%_GMS_%solver%_Results.txt/;
-*execute_unload 'DebugOutput.gdx'
-file fpres /GMS_%solver%_ExtendedResults.txt/;
+file fpres /%outpath%_GMS_%solver%_Results.txt/;
 fpres.ap = 1;
 put fpres;
 scalar stj;
 if(modelstat = 1 and slvstat = 1,
 *  put '%instname%' ';':1 round(profit.l,6):<99:6 /;
-* profit and solvetime
   put '%instname%' round(profit.l,6)::6 solvetime;
 else);
 putclose fpres
