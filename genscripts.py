@@ -25,8 +25,7 @@ python batchGAMSrng.py MODEL_FILENAME j30gdx START_IX END_IX
 
 
 def gen_script(modelFilename, six, eix):
-    script_contents = contents.replace("START_IX", str(six)).replace("END_IX", str(eix)).replace("MODEL_FILENAME",
-                                                                                                 modelFilename)
+    script_contents = contents.replace("START_IX", str(six)).replace("END_IX", str(eix)).replace("MODEL_FILENAME", modelFilename)
     with open("solvescript" + str(six) + "-" + str(eix) + "_generated.sh", "w") as fp:
         fp.write(script_contents)
 

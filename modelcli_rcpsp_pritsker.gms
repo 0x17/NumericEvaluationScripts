@@ -9,10 +9,10 @@ $offtext
 *$set instname ProjectStructureData
 
 options OPTCR = 0
-        MIP = GUROBI
-        RESLIM = 36000
-        THREADS = 1
-        ITERLIM = 2000000000;
+        MIP = %solver%
+        RESLIM = %timelimit%
+        THREADS = %nthreads%
+        ITERLIM = %iterlim%;
 
 sets j Arbeitsgänge
      t Perioden
