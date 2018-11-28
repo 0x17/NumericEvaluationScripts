@@ -16,7 +16,9 @@ contents = """
 
 echo "Job ran on:" $(hostname)
 
-module load gams
+module load GAMS/24.7.4
+module load Gurobi/7.5.2
+
 cd $PBS_O_WORKDIR
 gams MODEL_FILENAME lo=4 --nthreads=1 --timelimit=716400 --iterlim=2000000000 --solver=GUROBI --instname=INSTANCE
 """
