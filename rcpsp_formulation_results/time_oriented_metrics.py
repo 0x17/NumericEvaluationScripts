@@ -88,22 +88,23 @@ def characteristics():
     # TODO: Characteristics for all instances from j30 and j90 without OC data
     dfs = read_dataframes('.')
     model_names = list(dfs.keys())
-    cdf = pd.read_csv('characteristics.csv', index_col=0, header=0)
+    cdf = pd.read_csv('characteristics_kopset.csv', index_col=0, header=0, sep=';')
     data, nindex = [], []
     for instance in cdf.index:
-        if 'j30' in instance or 'j60' in instance:
-            bm = best_model_for_instance(instance + '.sm', dfs)
-            if bm is not None:
-                data.append(list(cdf.loc[instance].values)+[model_names.index(bm[0])])
-                nindex.append(instance)
+        ext = '.rcp' if 'RG30' in instance else'.sm'
+        bm = best_model_for_instance(instance + ext, dfs)
+        if bm is not None:
+            data.append(list(cdf.loc[instance].values)+[model_names.index(bm[0])])
+            nindex.append(instance)
     odf = pd.DataFrame(index=nindex, data=data, columns=list(cdf.columns)+['best_model'])
     odf.index.name = 'instance'
     return odf
 
 
 if __name__ == '__main__':
-    df = best_model_for_instances('.')
-    df.to_csv('best_model.csv')
+    #df = best_model_for_instances('.')
+    #df.to_csv('best_model.csv')
+    #exit(0)
     cf = characteristics()
     cf.to_csv('char_best_model.csv')
     exit(0)

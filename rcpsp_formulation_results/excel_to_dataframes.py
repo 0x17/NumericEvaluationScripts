@@ -48,10 +48,21 @@ def df_for_worksheets(filenames, worksheets):
     header = 'feasible;solvetime;gap'.split(';')
     data, index = [], []
     for ws_ix, ws in enumerate(worksheets):
-        for row in ws.iter_rows(min_row=2, max_col=9, max_row=481):
-            par, inst, obj, solvetime, _, lb, ub, best, gap = to_val(row)
+        is_rg = 'RanGen2' in filenames[ws_ix]
+        rg_set_no = 0
+        testset_size = 1800 if is_rg else 480
+        for row in ws.iter_rows(min_row=2, max_col=9, max_row=testset_size+1):
+            if is_rg:
+                setname, inst, obj, solvetime, _, lb, ub, best, gap = to_val(row)
+                if setname is not None and len(setname.strip())>0:
+                    rg_set_no = int(setname.split()[1])
+                gap = 0 if isinstance(gap, str) and gap == '-' else gap
+                inst_name = f'RG30_Set{rg_set_no}_Pat{inst}.rcp'
+            else:
+                par, inst, obj, solvetime, _, lb, ub, best, gap = to_val(row)
+                inst_name = name_from_pair(filenames[ws_ix], par, inst)
             feasible = obj != 0
-            index.append(name_from_pair(filenames[ws_ix], par, inst))
+            index.append(inst_name)
             data.append([feasible, solvetime, gap])
     df = pd.DataFrame(index=index, data=data, columns=header)
     df.index.name = 'instance'
