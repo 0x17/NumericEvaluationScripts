@@ -39,8 +39,8 @@ def impact(dfs, name_a, name_b):
             'best_improvement': max(st_a - st_oracle, st_b - st_oracle)}
 
 
-def read_dataframes(path):
-    model_filenames = [f for f in os.listdir(path) if f.endswith('.csv') and ('-CT' in f or '-DT' in f)]
+def read_dataframes(path, model_file_filter_predicate=None):
+    model_filenames = [f for f in os.listdir(path) if f.endswith('.csv') and ('-CT' in f or '-DT' in f) and (model_file_filter_predicate(f) if model_file_filter_predicate is not None else True)]
     return {model_fn.replace('.csv', ''): pd.read_csv(model_fn, index_col=0, header=0) for model_fn in model_filenames}
 
 
@@ -86,28 +86,27 @@ def best_model_for_instances(path):
 
 def characteristics():
     # TODO: Characteristics for all instances from j30 and j90 without OC data
-    dfs = read_dataframes('.')
+    model_portfolio = ['Pri-DT.csv', 'Kop-CT1.csv']
+    dfs = read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
     model_names = list(dfs.keys())
     cdf = pd.read_csv('characteristics_kopset.csv', index_col=0, header=0, sep=';')
     data, nindex = [], []
     for instance in cdf.index:
-        ext = '.rcp' if 'RG30' in instance else'.sm'
+        ext = '.rcp' if 'RG30' in instance else '.sm'
         bm = best_model_for_instance(instance + ext, dfs)
         if bm is not None:
-            data.append(list(cdf.loc[instance].values)+[model_names.index(bm[0])])
+            data.append(list(cdf.loc[instance].values) + [model_names.index(bm[0])])
             nindex.append(instance)
-    odf = pd.DataFrame(index=nindex, data=data, columns=list(cdf.columns)+['best_model'])
+    odf = pd.DataFrame(index=nindex, data=data, columns=list(cdf.columns) + ['best_model'])
     odf.index.name = 'instance'
     return odf
 
 
-if __name__ == '__main__':
-    #df = best_model_for_instances('.')
-    #df.to_csv('best_model.csv')
-    #exit(0)
-    cf = characteristics()
-    cf.to_csv('char_best_model.csv')
-    exit(0)
+def print_stats():
+    def to_csv_line(k, v):
+        return ','.join(list(map(lambda x: str(x), [','.join(k), v['competitiveness'], v['impact']['best_improvement']])))
+
+    print('model1,model2,competitiveness,impact_oracle_improvement')
     best_competitiveness = (('', ''), 0)
     glob_best_improvement = (('', ''), 0)
     for k, v in collect_results_from_disk('.').items():
@@ -115,6 +114,14 @@ if __name__ == '__main__':
             best_competitiveness = (k, v['competitiveness'])
         if v['impact']['best_improvement'] > glob_best_improvement[1]:
             glob_best_improvement = (k, v['impact']['best_improvement'])
-        print(f'{k}=>{v}\n')
+        # print(f'{k}=>{v}\n')
+        print(to_csv_line(k, v))
     print(f'Best competitiveness: {best_competitiveness}')
     print(f'Best improvement: {glob_best_improvement}')
+
+
+if __name__ == '__main__':
+    # df = best_model_for_instances('.')
+    # df.to_csv('best_model.csv')
+    cf = characteristics()
+    cf.to_csv('char_best_model.csv')
