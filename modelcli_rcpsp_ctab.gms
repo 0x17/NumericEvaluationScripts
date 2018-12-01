@@ -118,7 +118,7 @@ solvetime = rcpspoc.resusd;
 solvestat = rcpspoc.solvestat;
 modelstat = rcpspoc.modelstat;
 
-execute_unload '%instname%_results.gdx' s.l s.m makespan.l makespan.m solvetime solvestat modelstat;
+*execute_unload '%instname%_results.gdx' s.l s.m makespan.l makespan.m solvetime solvestat modelstat;
 
 file fpres /GMS_GUROBI_CTAB_Results.txt/;
 fpres.ap = 1;

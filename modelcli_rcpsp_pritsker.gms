@@ -69,9 +69,9 @@ solvetime = rcpspoc.resusd;
 solvestat = rcpspoc.solvestat;
 modelstat = rcpspoc.modelstat;
 
-execute_unload '%instname%_results.gdx' x.l x.m makespan.l makespan.m solvetime solvestat modelstat;
+*execute_unload '%instname%_results.gdx' x.l x.m makespan.l makespan.m solvetime solvestat modelstat;
 
-file fpres /GMS_GUROBI_Pristker_Results.txt/;
+file fpres /GMS_GUROBI_Pritsker_Results.txt/;
 fpres.ap = 1;
 put fpres;
 if(modelstat = 1 and solvestat = 1,
