@@ -2,6 +2,7 @@ import pandas as pd
 import rcpsp_formulation_results.time_oriented_metrics as tom
 import json
 
+
 def gen_update_dict(feas, solvetime, gap):
     return {'nfeas': 1 if feas else 0,
             'nopt': 1 if gap <= 0.0001 and feas else 0,
@@ -44,4 +45,7 @@ def stats_for_prediction(pred_fn):
 
 
 if __name__ == '__main__':
-    print(json.dumps(stats_for_prediction('predictions_models.csv'), indent=4))
+    print('Stats only on validation data')
+    print(json.dumps(stats_for_prediction('predictions_models_onlyvalidation.csv'), indent=4))
+    print('Stats on all data (train and validation)')
+    print(json.dumps(stats_for_prediction('predictions_models_withtrain.csv'), indent=4))

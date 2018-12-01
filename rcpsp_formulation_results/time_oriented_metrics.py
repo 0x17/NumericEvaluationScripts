@@ -123,5 +123,6 @@ def print_stats():
 if __name__ == '__main__':
     # df = best_model_for_instances('.')
     # df.to_csv('best_model.csv')
-    cf = characteristics()
-    cf.to_csv('char_best_model.csv')
+    #cf = characteristics()
+    #cf.to_csv('char_best_model.csv')
+    print_stats()
