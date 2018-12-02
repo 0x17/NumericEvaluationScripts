@@ -49,6 +49,7 @@ def df_for_worksheets(filenames, worksheets):
     data, index = [], []
     for ws_ix, ws in enumerate(worksheets):
         is_rg = 'RanGen2' in filenames[ws_ix]
+        is_j90 = 'j90' in filenames[ws_ix]
         rg_set_no = 0
         testset_size = 1800 if is_rg else 480
         for row in ws.iter_rows(min_row=2, max_col=9, max_row=testset_size+1):
@@ -60,6 +61,7 @@ def df_for_worksheets(filenames, worksheets):
                 inst_name = f'RG30_Set{rg_set_no}_Pat{inst}.rcp'
             else:
                 par, inst, obj, solvetime, _, lb, ub, best, gap = to_val(row)
+                solvetime = min(solvetime, 1200) if is_j90 else min(solvetime, 600)
                 inst_name = name_from_pair(filenames[ws_ix], par, inst)
             feasible = obj != 0
             index.append(inst_name)

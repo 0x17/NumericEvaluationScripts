@@ -23,7 +23,7 @@ def stats_for_prediction(pred_fn):
 
     def is_psplib(inst): return any(substr in inst for substr in ['j30', 'j60', 'j90'])
 
-    model_portfolio = ['Pri-DT.csv', 'Kop-CT1.csv']
+    model_portfolio = ['Kop-DT2.csv', 'Kop-CT1.csv']
     dfs = tom.read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
     model_names = list(dfs.keys())
     stats = {method: dict(nfeas=0, nopt=0, ngood=0, totalsolvetime=0, avggap=0) for method in model_names + ['as', 'oracle']}
@@ -51,4 +51,4 @@ if __name__ == '__main__':
     print('Stats only on validation data')
     print(json.dumps(stats_for_prediction('predictions_models_onlyvalidation.csv'), indent=4))
     print('Stats on all data (train and validation)')
-    print(json.dumps(stats_for_prediction('predictions_models_withtrain.csv'), indent=4))
+    print(json.dumps(stats_for_prediction('predictions_models_with_train.csv'), indent=4))
