@@ -70,12 +70,16 @@ def df_for_worksheets(filenames, worksheets):
 
 
 def merge_results_for_model(model_name):
+    print(f'Merging data for model: {model_name}')
     workbooks, worksheets = [], []
     filenames = result_files('.')
     for rf in filenames:
+        print(f'\tTaking data from {rf}')
         workbooks.append(openpyxl.load_workbook(rf))
-        assert model_name in workbooks[-1].sheetnames
-        worksheets.append(workbooks[-1][model_name])
+        if model_name in workbooks[-1].sheetnames:
+            worksheets.append(workbooks[-1][model_name])
+        else:
+            print(f'\tWarning: Missing {model_name} from results in {rf}!')
     df_for_worksheets(filenames, worksheets).to_csv(f'{model_name}.csv')
     for wb in workbooks:
         wb.close()

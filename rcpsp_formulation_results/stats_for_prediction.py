@@ -20,6 +20,8 @@ def stats_for_prediction(pred_fn):
         for method in stats.keys():
             stats[method]['avggap'] /= num_instances
 
+    def is_psplib(inst): return any(substr in inst for substr in ['j30', 'j60', 'j90'])
+
     model_portfolio = ['Pri-DT.csv', 'Kop-CT1.csv']
     dfs = tom.read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
     model_names = list(dfs.keys())
@@ -27,7 +29,7 @@ def stats_for_prediction(pred_fn):
     pdf = pd.read_csv(pred_fn, sep=';', index_col=0, header=None)
     val_instances = list(pdf.index.values)
     for vinst in val_instances:
-        vinst_ext = vinst + '.sm' if 'j30' in vinst or 'j60' in vinst else vinst + '.rcp'
+        vinst_ext = vinst + '.sm' if is_psplib(vinst) else vinst + '.rcp'
         predicted_as_model_index = int(pdf.loc[vinst].values[0])
         oracle_model_index = int(pdf.loc[vinst].values[1])
         feas_a, solvetime_a, gap_a = dfs[model_names[0]].loc[vinst_ext].values

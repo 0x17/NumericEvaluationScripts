@@ -11,13 +11,11 @@ def competitiveness(dfs, name_a, name_b):
         optimal_a = feas_a and gap_a == 0
         optimal_b = feas_b and gap_b == 0
         if optimal_a and optimal_b:
+            n += 1
             if solvetime_a < solvetime_b:
                 n_a += 1
-                n += 1
             elif solvetime_a > solvetime_b:
                 n_b += 1
-                n += 1
-    if n == 0: return 0
     return 2 * min(n_a / n, n_b / n)
 
 
@@ -89,9 +87,11 @@ def characteristics():
     model_portfolio = ['Pri-DT.csv', 'Kop-CT1.csv']
     dfs = read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
     model_names = list(dfs.keys())
-    cdf = pd.read_csv('characteristics_kopset.csv', index_col=0, header=0, sep=';')
+    cdf = pd.read_csv('characteristics_kopset_j90.csv', index_col=0, header=0, sep=';')
     data, nindex = [], []
-    for instance in cdf.index:
+    icount = len(cdf.index)
+    for ctr, instance in enumerate(cdf.index):
+        print(f'\rDetermining best model for instance {instance}, progress {ctr/icount*100.0}%', end='', flush=True)
         ext = '.rcp' if 'RG30' in instance else '.sm'
         bm = best_model_for_instance(instance + ext, dfs)
         if bm is not None:
@@ -121,8 +121,8 @@ def print_stats():
 
 
 if __name__ == '__main__':
-    # df = best_model_for_instances('.')
-    # df.to_csv('best_model.csv')
-    #cf = characteristics()
-    #cf.to_csv('char_best_model.csv')
-    print_stats()
+    #df = best_model_for_instances('.')
+    #df.to_csv('best_model.csv')
+    cf = characteristics()
+    cf.to_csv('char_best_model.csv')
+    #print_stats()
