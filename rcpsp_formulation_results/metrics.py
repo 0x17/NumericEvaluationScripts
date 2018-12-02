@@ -21,16 +21,28 @@ def competitiveness_time(dfs, name_a, name_b):
 
 def competitiveness(dfs, name_a, name_b):
     n_a = n_b = n = 0
-    sub_dfs = {model_name: dfs[model_name] for model_name in [name_a, name_b]}
-    instances = list(sub_dfs[name_a].index.values)
+    instances = list(dfs[name_a].index.values)
     for instance in instances:
-        res = best_model_for_instance(instance, sub_dfs)
+        res = best_model_for_instance(instance, dfs)
         if res is not None:
             model_name, solvetime, gap = res
             n_a += 1 if model_name == name_a else 0
             n_b += 1 if model_name == name_b else 0
             n += 1
     return 2 * min(n_a / n, n_b / n)
+
+
+def union_stats(dfs, name_a, name_b):
+    feas_union = opt_union = good_union = 0
+    instances = list(dfs[name_a].index.values)
+    for instance in instances:
+        #if 'j90' in instance: continue
+        feas_a, _, gap_a = dfs[name_a].loc[instance].values
+        feas_b, _, gap_b = dfs[name_b].loc[instance].values
+        feas_union += 1 if feas_a or feas_b else 0
+        opt_union += 1 if feas_a and gap_a == 0 or feas_b and gap_b == 0 else 0
+        good_union += 1 if feas_a and gap_a <= 0.03 or feas_b and gap_b <= 0.03 else 0
+    return {'opt_union': opt_union, 'feas_union': feas_union, 'good_union': good_union}
 
 
 def impact(dfs, name_a, name_b):
@@ -58,15 +70,18 @@ def read_dataframes(path, model_file_filter_predicate=None):
 
 def collect_results_from_disk(path):
     dfs = read_dataframes(path)
-    model_names = [ mn for mn in list(dfs.keys()) if 'Kone' not in mn ]
+    model_names = [mn for mn in list(dfs.keys()) if 'Kone' not in mn]
     results = {}
+    print()
     for ix_a, name_a in enumerate(model_names):
         for ix_b, name_b in enumerate(model_names):
             if ix_a < ix_b:
-                print(f'Computing results for {name_a} and {name_b}')
+                print(f'\rComputing results for {name_a} and {name_b}', end='', flush=True)
+                sub_dfs = {model_name: dfs[model_name] for model_name in [name_a, name_b]}
                 results[(name_a, name_b)] = {
-                    'competitiveness': competitiveness(dfs, name_a, name_b),
-                    'impact': impact(dfs, name_a, name_b)
+                    'competitiveness': competitiveness(sub_dfs, name_a, name_b),
+                    'impact': impact(sub_dfs, name_a, name_b),
+                    'union_stats': union_stats(sub_dfs, name_a, name_b)
                 }
     return results
 
@@ -99,7 +114,7 @@ def best_model_for_instances(path):
 
 def characteristics():
     # TODO: Characteristics for all instances from j30 and j90 without OC data
-    model_portfolio = ['Pri-DT.csv', 'Kop-CT1.csv']
+    model_portfolio = ['Kop-DT2.csv', 'Kop-CT1.csv']
     dfs = read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
     model_names = list(dfs.keys())
     cdf = pd.read_csv('characteristics_kopset_j90.csv', index_col=0, header=0, sep=';')
@@ -119,9 +134,9 @@ def characteristics():
 
 def print_stats():
     def to_csv_line(k, v):
-        return ','.join(list(map(lambda x: str(x), [','.join(k), v['competitiveness'], v['impact']['best_improvement']])))
+        return ';'.join(list(map(lambda x: str(x), [';'.join(k), v['competitiveness'], v['impact']['best_improvement'], v['union_stats']['opt_union'], v['union_stats']['feas_union'], v['union_stats']['good_union']])))
 
-    print('model1,model2,competitiveness,impact_oracle_improvement')
+    print('model1,model2,competitiveness,impact_oracle_improvement,nopt,nfeas,ngood'.replace(',',';'))
     best_competitiveness = (('', ''), 0)
     glob_best_improvement = (('', ''), 0)
     for k, v in collect_results_from_disk('.').items():
@@ -129,8 +144,8 @@ def print_stats():
             best_competitiveness = (k, v['competitiveness'])
         if v['impact']['best_improvement'] > glob_best_improvement[1]:
             glob_best_improvement = (k, v['impact']['best_improvement'])
-        # print(f'{k}=>{v}\n')
-        print(to_csv_line(k, v))
+        #print(f'{k}=>{v}\n')
+        print(to_csv_line(k, v).replace('.',','))
     print(f'Best competitiveness: {best_competitiveness}')
     print(f'Best improvement: {glob_best_improvement}')
 
@@ -138,6 +153,6 @@ def print_stats():
 if __name__ == '__main__':
     # df = best_model_for_instances('.')
     # df.to_csv('best_model.csv')
-    # cf = characteristics()
-    # cf.to_csv('char_best_model.csv')
-    print_stats()
+    cf = characteristics()
+    cf.to_csv('char_best_model.csv')
+    #print_stats()

@@ -1,11 +1,12 @@
 import pandas as pd
-import rcpsp_formulation_results.time_oriented_metrics as tom
+import rcpsp_formulation_results.metrics as tom
 import json
 
 
 def gen_update_dict(feas, solvetime, gap):
     return {'nfeas': 1 if feas else 0,
             'nopt': 1 if gap <= 0.0001 and feas else 0,
+            'ngood': 1 if gap <= 0.03 and feas else 0,
             'totalsolvetime': solvetime,
             'avggap': gap if feas else 1.0}
 
@@ -25,7 +26,7 @@ def stats_for_prediction(pred_fn):
     model_portfolio = ['Pri-DT.csv', 'Kop-CT1.csv']
     dfs = tom.read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
     model_names = list(dfs.keys())
-    stats = {method: dict(nfeas=0, nopt=0, totalsolvetime=0, avggap=0) for method in model_names + ['as', 'oracle']}
+    stats = {method: dict(nfeas=0, nopt=0, ngood=0, totalsolvetime=0, avggap=0) for method in model_names + ['as', 'oracle']}
     pdf = pd.read_csv(pred_fn, sep=';', index_col=0, header=None)
     val_instances = list(pdf.index.values)
     for vinst in val_instances:
