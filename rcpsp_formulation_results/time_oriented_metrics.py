@@ -2,7 +2,7 @@ import os
 import pandas as pd
 
 
-def competitiveness(dfs, name_a, name_b):
+def competitiveness_time(dfs, name_a, name_b):
     n_a = n_b = n = 0
     for ix, (index, row) in enumerate(dfs[name_a].iterrows()):
         feas_a, solvetime_a, gap_a = row.values
@@ -16,6 +16,20 @@ def competitiveness(dfs, name_a, name_b):
                 n_a += 1
             elif solvetime_a > solvetime_b:
                 n_b += 1
+    return 2 * min(n_a / n, n_b / n)
+
+
+def competitiveness(dfs, name_a, name_b):
+    n_a = n_b = n = 0
+    sub_dfs = {model_name: dfs[model_name] for model_name in [name_a, name_b]}
+    instances = list(sub_dfs[name_a].index.values)
+    for instance in instances:
+        res = best_model_for_instance(instance, sub_dfs)
+        if res is not None:
+            model_name, solvetime, gap = res
+            n_a += 1 if model_name == name_a else 0
+            n_b += 1 if model_name == name_b else 0
+            n += 1
     return 2 * min(n_a / n, n_b / n)
 
 
@@ -44,11 +58,12 @@ def read_dataframes(path, model_file_filter_predicate=None):
 
 def collect_results_from_disk(path):
     dfs = read_dataframes(path)
-    model_names = list(dfs.keys())
+    model_names = [ mn for mn in list(dfs.keys()) if 'Kone' not in mn ]
     results = {}
     for ix_a, name_a in enumerate(model_names):
         for ix_b, name_b in enumerate(model_names):
             if ix_a < ix_b:
+                print(f'Computing results for {name_a} and {name_b}')
                 results[(name_a, name_b)] = {
                     'competitiveness': competitiveness(dfs, name_a, name_b),
                     'impact': impact(dfs, name_a, name_b)
@@ -91,7 +106,7 @@ def characteristics():
     data, nindex = [], []
     icount = len(cdf.index)
     for ctr, instance in enumerate(cdf.index):
-        print(f'\rDetermining best model for instance {instance}, progress {ctr/icount*100.0}%', end='', flush=True)
+        print(f'\rDetermining best model for instance {instance}, progress {ctr / icount * 100.0}%', end='', flush=True)
         ext = '.rcp' if 'RG30' in instance else '.sm'
         bm = best_model_for_instance(instance + ext, dfs)
         if bm is not None:
@@ -121,8 +136,8 @@ def print_stats():
 
 
 if __name__ == '__main__':
-    #df = best_model_for_instances('.')
-    #df.to_csv('best_model.csv')
-    cf = characteristics()
-    cf.to_csv('char_best_model.csv')
-    #print_stats()
+    # df = best_model_for_instances('.')
+    # df.to_csv('best_model.csv')
+    # cf = characteristics()
+    # cf.to_csv('char_best_model.csv')
+    print_stats()
