@@ -57,7 +57,8 @@ def df_for_worksheets(filenames, worksheets):
                 setname, inst, obj, solvetime, _, lb, ub, best, gap = to_val(row)
                 if setname is not None and len(setname.strip())>0:
                     rg_set_no = int(setname.split()[1])
-                gap = 0 if isinstance(gap, str) and gap == '-' else gap
+                if isinstance(gap, str) and gap == '-':
+                    gap = 0 if solvetime < 600 else 1
                 inst_name = f'RG30_Set{rg_set_no}_Pat{inst}.rcp'
             else:
                 par, inst, obj, solvetime, _, lb, ub, best, gap = to_val(row)

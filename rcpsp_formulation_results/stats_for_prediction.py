@@ -3,10 +3,10 @@ import rcpsp_formulation_results.metrics as tom
 import json
 
 
-def gen_update_dict(feas, solvetime, gap):
+def gen_update_dict(feas, solvetime, gap, tlim):
     return {'nfeas': 1 if feas else 0,
-            'nopt': 1 if gap <= 0.0001 and feas else 0,
-            'ngood': 1 if gap <= 0.03 and feas else 0,
+            'nopt': 1 if gap == 0 and feas and solvetime < tlim else 0,
+            'ngood': 1 if gap < 0.03 and feas else 0,
             'totalsolvetime': solvetime,
             'avggap': gap if feas else 1.0}
 
@@ -30,13 +30,14 @@ def stats_for_prediction(pred_fn):
     pdf = pd.read_csv(pred_fn, sep=';', index_col=0, header=None)
     val_instances = list(pdf.index.values)
     for vinst in val_instances:
+        tlim = 1200 if 'j90' in vinst else 600
         vinst_ext = vinst + '.sm' if is_psplib(vinst) else vinst + '.rcp'
         predicted_as_model_index = int(pdf.loc[vinst].values[0])
         oracle_model_index = int(pdf.loc[vinst].values[1])
         feas_a, solvetime_a, gap_a = dfs[model_names[0]].loc[vinst_ext].values
         feas_b, solvetime_b, gap_b = dfs[model_names[1]].loc[vinst_ext].values
-        updates_a = gen_update_dict(feas_a, solvetime_a, gap_a)
-        updates_b = gen_update_dict(feas_b, solvetime_b, gap_b)
+        updates_a = gen_update_dict(feas_a, solvetime_a, gap_a, tlim)
+        updates_b = gen_update_dict(feas_b, solvetime_b, gap_b, tlim)
         apply_update_dict(stats[model_names[0]], updates_a)
         apply_update_dict(stats[model_names[1]], updates_b)
         apply_update_dict(stats['as'], updates_a if predicted_as_model_index == 0 else updates_b)
