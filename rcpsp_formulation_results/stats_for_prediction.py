@@ -29,6 +29,7 @@ def stats_for_prediction(pred_fn):
     stats = {method: dict(nfeas=0, nopt=0, ngood=0, totalsolvetime=0, avggap=0) for method in model_names + ['as', 'oracle']}
     pdf = pd.read_csv(pred_fn, sep=';', index_col=0, header=None)
     val_instances = list(pdf.index.values)
+    nbest_a = nbest_b = npredcorr = 0
     for vinst in val_instances:
         tlim = 1200 if 'j90' in vinst else 600
         vinst_ext = vinst + '.sm' if is_psplib(vinst) else vinst + '.rcp'
@@ -42,8 +43,15 @@ def stats_for_prediction(pred_fn):
         apply_update_dict(stats[model_names[1]], updates_b)
         apply_update_dict(stats['as'], updates_a if predicted_as_model_index == 0 else updates_b)
         apply_update_dict(stats['oracle'], updates_a if oracle_model_index == 0 else updates_b)
+        nbest_a += 1 if oracle_model_index == 0 else 0
+        nbest_b += 1 if oracle_model_index == 1 else 0
+        npredcorr += 1 if predicted_as_model_index == oracle_model_index else 0
 
     correct_avg_gaps(stats, len(val_instances))
+    stats[model_names[0]]['accuracy'] = nbest_a / len(val_instances)
+    stats[model_names[1]]['accuracy'] = nbest_b / len(val_instances)
+    stats['as']['accuracy'] = npredcorr / len(val_instances)
+    stats['oracle']['accuracy'] = 1
 
     return stats
 
