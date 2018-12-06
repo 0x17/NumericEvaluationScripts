@@ -160,7 +160,7 @@ if __name__ == '__main__':
     # df = best_model_for_instances('.')
     # df.to_csv('best_model.csv')
 
-    cf = characteristics(one_hot=False)
+    cf = characteristics(one_hot=True)
     cf.to_csv('char_best_model.csv')
     #shutil.copy('char_best_model.csv', '')
 
