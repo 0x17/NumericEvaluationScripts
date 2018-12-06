@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-
+import shutil
 
 def competitiveness_time(dfs, name_a, name_b):
     n_a = n_b = n = 0
@@ -36,7 +36,7 @@ def union_stats(dfs, name_a, name_b):
     feas_union = opt_union = good_union = 0
     instances = list(dfs[name_a].index.values)
     for instance in instances:
-        #if 'j90' in instance: continue
+        # if 'j90' in instance: continue
         feas_a, _, gap_a = dfs[name_a].loc[instance].values
         feas_b, _, gap_b = dfs[name_b].loc[instance].values
         feas_union += 1 if feas_a or feas_b else 0
@@ -112,7 +112,7 @@ def best_model_for_instances(path):
     return bmdf
 
 
-def characteristics():
+def characteristics(one_hot=False):
     # TODO: Characteristics for all instances from j30 and j90 without OC data
     model_portfolio = ['Kop-DT2.csv', 'Kop-CT1.csv']
     dfs = read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
@@ -120,14 +120,20 @@ def characteristics():
     cdf = pd.read_csv('characteristics_kopset_j90.csv', index_col=0, header=0, sep=';')
     data, nindex = [], []
     icount = len(cdf.index)
+
+    def to_one_hot(ix):
+        return [1 if i == ix else 0 for i in range(len(model_names))]
+
     for ctr, instance in enumerate(cdf.index):
         print(f'\rDetermining best model for instance {instance}, progress {ctr / icount * 100.0}%', end='', flush=True)
         ext = '.rcp' if 'RG30' in instance else '.sm'
         bm = best_model_for_instance(instance + ext, dfs)
         if bm is not None:
-            data.append(list(cdf.loc[instance].values) + [model_names.index(bm[0])])
+            best_index = model_names.index(bm[0])
+            data.append(list(cdf.loc[instance].values) + ([best_index] if not one_hot else to_one_hot(best_index)))
             nindex.append(instance)
-    odf = pd.DataFrame(index=nindex, data=data, columns=list(cdf.columns) + ['best_model'])
+    one_hot_column_names = [f'bm{i+1}' for i in range(len(model_names))]
+    odf = pd.DataFrame(index=nindex, data=data, columns=list(cdf.columns) + (['best_model'] if not one_hot else one_hot_column_names))
     odf.index.name = 'instance'
     return odf
 
@@ -136,7 +142,7 @@ def print_stats():
     def to_csv_line(k, v):
         return ';'.join(list(map(lambda x: str(x), [';'.join(k), v['competitiveness'], v['impact']['best_improvement'], v['union_stats']['opt_union'], v['union_stats']['feas_union'], v['union_stats']['good_union']])))
 
-    print('model1,model2,competitiveness,impact_oracle_improvement,nopt,nfeas,ngood'.replace(',',';'))
+    print('model1,model2,competitiveness,impact_oracle_improvement,nopt,nfeas,ngood'.replace(',', ';'))
     best_competitiveness = (('', ''), 0)
     glob_best_improvement = (('', ''), 0)
     for k, v in collect_results_from_disk('.').items():
@@ -144,8 +150,8 @@ def print_stats():
             best_competitiveness = (k, v['competitiveness'])
         if v['impact']['best_improvement'] > glob_best_improvement[1]:
             glob_best_improvement = (k, v['impact']['best_improvement'])
-        #print(f'{k}=>{v}\n')
-        print(to_csv_line(k, v).replace('.',','))
+        # print(f'{k}=>{v}\n')
+        print(to_csv_line(k, v).replace('.', ','))
     print(f'Best competitiveness: {best_competitiveness}')
     print(f'Best improvement: {glob_best_improvement}')
 
@@ -154,7 +160,8 @@ if __name__ == '__main__':
     # df = best_model_for_instances('.')
     # df.to_csv('best_model.csv')
 
-    cf = characteristics()
+    cf = characteristics(one_hot=False)
     cf.to_csv('char_best_model.csv')
+    #shutil.copy('char_best_model.csv', '')
 
-    #print_stats()
+    # print_stats()

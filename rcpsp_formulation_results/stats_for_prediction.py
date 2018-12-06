@@ -21,7 +21,8 @@ def stats_for_prediction(pred_fn):
         for method in stats.keys():
             stats[method]['avggap'] /= num_instances
 
-    def is_psplib(inst): return any(substr in inst for substr in ['j30', 'j60', 'j90'])
+    def is_psplib(inst):
+        return any(substr in inst for substr in ['j30', 'j60', 'j90'])
 
     model_portfolio = ['Kop-DT2.csv', 'Kop-CT1.csv']
     dfs = tom.read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
@@ -56,8 +57,12 @@ def stats_for_prediction(pred_fn):
     return stats
 
 
-if __name__ == '__main__':
+def print_stats():
     print('Stats only on validation data')
     print(json.dumps(stats_for_prediction('predictions_models_onlyvalidation.csv'), indent=4))
     print('Stats on all data (train and validation)')
     print(json.dumps(stats_for_prediction('predictions_models_with_train.csv'), indent=4))
+
+
+if __name__ == '__main__':
+    print_stats()
