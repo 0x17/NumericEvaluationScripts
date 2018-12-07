@@ -57,12 +57,41 @@ def stats_for_prediction(pred_fn):
     return stats
 
 
-def print_stats():
+def generate_tex_table_code(ofn, data_dict, num_samples):
+    column_order = ['Kop-CT1', 'Kop-DT2', 'as', 'oracle']
+    row_order = ['accuracy', 'nfeas', 'ngood', 'nopt']
+    rmapping = {'accuracy': 'Accuracy',
+                'nfeas': 'Feasible',
+                'ngood': 'Good',
+                'nopt': 'Optimal'}
+    ostr = ''
+
+    for row_name in row_order:
+        row_values = [rmapping[row_name]]
+        for column_name in column_order:
+            value = data_dict[column_name][row_name]
+            if row_order.index(row_name) > 0:
+                value /= num_samples
+            value = round(value*100.0, 2)
+            row_values += ["{:.2f}".format(value)+'\%']
+
+        ostr += ' & '.join(row_values) + '\\\\\n'
+
+    with open(ofn, 'w') as fp:
+        fp.write(ostr)
+
+
+def print_stats(for_dnn=False):
+    infix = 'dnn' if for_dnn else 'models'
     print('Stats only on validation data')
-    print(json.dumps(stats_for_prediction('predictions_models_onlyvalidation.csv'), indent=4))
+    only_val_stats = stats_for_prediction(f'predictions_{infix}_onlyvalidation.csv')
+    print(json.dumps(only_val_stats, indent=4))
     print('Stats on all data (train and validation)')
-    print(json.dumps(stats_for_prediction('predictions_models_with_train.csv'), indent=4))
+    all_data_stats = stats_for_prediction(f'predictions_{infix}_with_train.csv')
+    print(json.dumps(all_data_stats, indent=4))
+    generate_tex_table_code(f'only_validation_table_{infix}.tex', only_val_stats, 295)
+    generate_tex_table_code(f'train_and_validation_table_{infix}.tex', all_data_stats, 3240)
 
 
 if __name__ == '__main__':
-    print_stats()
+    print_stats(for_dnn=False)

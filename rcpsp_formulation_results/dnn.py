@@ -50,7 +50,7 @@ def load_train_data(fn, num_ys=4):
 
 
 def extract_split_from_prediction_data(pred_fn, data_fn, xs, ys):
-    def extract_instances(fn, skip_first, sep = ';'):
+    def extract_instances(fn, skip_first, sep=';'):
         with open(fn, 'r') as fp:
             return [line.split(sep)[0] for line in fp.readlines()[1 if skip_first else 0:] if sep in line]
 
@@ -69,6 +69,23 @@ def extract_split_from_prediction_data(pred_fn, data_fn, xs, ys):
     return (train_xs, train_ys), (val_xs, val_ys)
 
 
+def make_and_save_predictions(ofn, xs, ys):
+    res = dnn.predict(xs)
+    best_actual = np.argmax(ys.values, axis=1)
+    best_pred = np.argmax(res, axis=1)
+    diff = np.subtract(best_actual, best_pred)
+
+    best_pred_and_actual = [[best_pred[ix], b_actual] for ix, b_actual in enumerate(best_actual)]
+
+    print(best_pred)
+    print(best_actual)
+    print(diff)
+    print(f'accuracy: {1 - np.sum(np.abs(diff)) / len(diff)}')
+
+    odf = pd.DataFrame(best_pred_and_actual, index=xs.index, columns=['class_as', 'class_oracle'])
+    odf.to_csv(ofn, sep=';', header=None)
+
+
 if __name__ == '__main__':
     num_classes = 2
     skip_model_load = False
@@ -80,7 +97,7 @@ if __name__ == '__main__':
     train_xs, train_ys = train
     val_xs, val_ys = validation
 
-    #model_fn = 'trained_model.h5'
+    # model_fn = 'trained_model.h5'
     model_fn = 'weights.best.hdf5'
 
     early_stop = EarlyStopping(monitor='val_acc', min_delta=0.000001, patience=10, verbose=1, mode='auto')
@@ -94,15 +111,5 @@ if __name__ == '__main__':
         plot_model_history(info)
         dnn.save(model_fn)
 
-    res = dnn.predict(val_xs)
-    best_actual = np.argmax(val_ys.values, axis=1)
-    best_pred = np.argmax(res, axis=1)
-    diff = np.subtract(best_actual, best_pred)
-
-    print(best_pred)
-    print(best_actual)
-    print(diff)
-    print(f'accuracy: {1-np.sum(np.abs(diff)) / len(diff)}')
-
-    odf = pd.DataFrame(best_pred, index=val_xs.index, columns=['class'])
-    odf.to_csv('predictions_dnn.csv', sep=';', header=None)
+    make_and_save_predictions('predictions_dnn_onlyvalidation.csv', val_xs, val_ys)
+    make_and_save_predictions('predictions_dnn_with_train.csv', xs, ys)
