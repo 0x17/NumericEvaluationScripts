@@ -38,7 +38,7 @@ def build_network(ninputs, noutputs, sizes, act='relu', init='uniform', bias=Tru
     output_layer = [Dense(noutputs, activation=output_activation, kernel_initializer=init, use_bias=bias)]
     hidden_layers = [Dense(size, activation=act, kernel_initializer=init, use_bias=bias) for size in sizes[1:]]
     dnn = Sequential(input_layer + hidden_layers + output_layer)
-    dnn.compile(loss=('categorical_crossentropy' if not regression else 'mape'), optimizer='sgd', metrics=(['acc'] if not regression else []))
+    dnn.compile(loss=('mse' if not regression else 'mape'), optimizer='adam', metrics=(['acc'] if not regression else []))
     dnn.summary()
     return dnn
 
@@ -46,7 +46,7 @@ def build_network(ninputs, noutputs, sizes, act='relu', init='uniform', bias=Tru
 def load_train_data(fn, num_ys=4):
     data = pd.read_csv(fn, sep=',', header=0, index_col=0)
     ncols = len(data.columns)
-    return data.iloc[:, :ncols - num_ys].drop(['revSlope'], axis=1), data.iloc[:, ncols - num_ys:]
+    return data.iloc[:, :ncols - num_ys], data.iloc[:, ncols - num_ys:]
 
 
 def extract_split_from_prediction_data(pred_fn, data_fn, xs, ys):
@@ -69,7 +69,7 @@ def extract_split_from_prediction_data(pred_fn, data_fn, xs, ys):
     return (train_xs, train_ys), (val_xs, val_ys)
 
 
-def make_and_save_predictions(ofn, xs, ys):
+def make_and_save_predictions(dnn, ofn, xs, ys):
     res = dnn.predict(xs)
     best_actual = np.argmax(ys.values, axis=1)
     best_pred = np.argmax(res, axis=1)
@@ -86,30 +86,34 @@ def make_and_save_predictions(ofn, xs, ys):
     odf.to_csv(ofn, sep=';', header=None)
 
 
-if __name__ == '__main__':
+def train_dnn_model(skip_model_load=False):
     num_classes = 2
-    skip_model_load = False
+    np.random.seed(23)
+    xs, ys = load_train_data('char_best_model_dnn.csv', num_classes)
 
-    np.random.seed(0)
-    xs, ys = load_train_data('char_best_model.csv', num_classes)
-
-    train, validation = extract_split_from_prediction_data('predictions_models_onlyvalidation.csv', 'char_best_model.csv', xs, ys)
+    train, validation = extract_split_from_prediction_data('predictions_models_onlyvalidation.csv', 'char_best_model_dnn.csv', xs, ys)
     train_xs, train_ys = train
     val_xs, val_ys = validation
 
-    # model_fn = 'trained_model.h5'
-    model_fn = 'weights.best.hdf5'
+    model_fn = 'trained_model.h5'
+    checkpoint_fn = 'weights.best.hdf5'
 
     early_stop = EarlyStopping(monitor='val_acc', min_delta=0.000001, patience=10, verbose=1, mode='auto')
     checkpoint = ModelCheckpoint('weights.best.hdf5', monitor='val_acc', verbose=1, save_best_only=True, mode='max')
+    callbacks = [checkpoint]
 
     if os.path.isfile(model_fn) and not skip_model_load:
         dnn = load_model(model_fn)
     else:
-        dnn = build_network(ninputs=len(xs.columns), noutputs=len(ys.columns), sizes=[190, 64, 32, 16], regression=False)
-        info = dnn.fit(train_xs, train_ys, validation_data=(val_xs, val_ys), batch_size=10, epochs=1000, verbose=2, shuffle=True, callbacks=[checkpoint])
-        plot_model_history(info)
+        dnn = build_network(ninputs=len(xs.columns), noutputs=len(ys.columns), sizes=[512, 256, 190, 64, 32, 16], regression=False)
+        info = dnn.fit(train_xs, train_ys, validation_data=(val_xs, val_ys), batch_size=10, epochs=1000, verbose=2, shuffle=True, callbacks=callbacks)
         dnn.save(model_fn)
+        plot_model_history(info)
 
-    make_and_save_predictions('predictions_dnn_onlyvalidation.csv', val_xs, val_ys)
-    make_and_save_predictions('predictions_dnn_with_train.csv', xs, ys)
+    dnn = load_model(checkpoint_fn)
+    make_and_save_predictions(dnn, 'predictions_dnn_onlyvalidation.csv', val_xs, val_ys)
+    make_and_save_predictions(dnn, 'predictions_dnn_with_train.csv', xs, ys)
+
+
+if __name__ == '__main__':
+    train_dnn_model(True)
