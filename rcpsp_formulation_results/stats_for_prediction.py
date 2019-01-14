@@ -1,6 +1,7 @@
 import pandas as pd
 import rcpsp_formulation_results.metrics as tom
 import json
+import os
 
 
 def gen_update_dict(feas, solvetime, gap, tlim):
@@ -72,13 +73,48 @@ def generate_tex_table_code(ofn, data_dict, num_samples):
             value = data_dict[column_name][row_name]
             if row_order.index(row_name) > 0:
                 value /= num_samples
-            value = round(value*100.0, 2)
-            row_values += ["{:.2f}".format(value)+'\%']
+            value = round(value * 100.0, 2)
+            row_values += ["{:.2f}".format(value) + '\\%']
 
         ostr += ' & '.join(row_values) + '\\\\\n'
 
     with open(ofn, 'w') as fp:
         fp.write(ostr)
+
+
+def instances_from_prediction_csv(fn):
+    pdf = pd.read_csv(fn, sep=';', index_col=0, header=None)
+    return list(pdf.index.values)
+
+
+def all_model_stats_on_instances(instances):
+    def is_res_fn(fn):
+        return fn.endswith('.csv') and ('DT' in fn or 'CT' in fn)
+
+    model_portfolio = [fn for fn in os.listdir('.') if is_res_fn(fn)]
+    dfs = tom.read_dataframes('.', model_file_filter_predicate=lambda fn: fn in model_portfolio)
+    model_names = list(dfs.keys())
+    stats = {method: dict(nfeas=0, nopt=0, ngood=0, totalsolvetime=0, avggap=0) for method in model_names}
+
+    def correct_avg_gaps(stats, num_instances):
+        for method in stats.keys():
+            stats[method]['avggap'] /= num_instances
+
+    def is_psplib(inst):
+        return any(substr in inst for substr in ['j30', 'j60', 'j90'])
+
+    for vinst in instances:
+        tlim = 1200 if 'j90' in vinst else 600
+        vinst_ext = vinst + '.sm' if is_psplib(vinst) else vinst + '.rcp'
+        for model_name in model_names:
+            if 'Kone' in model_name and 'j90' in vinst: continue
+            feas, solvetime, gap = dfs[model_name].loc[vinst_ext].values
+            updates = gen_update_dict(feas, solvetime, gap, tlim)
+            apply_update_dict(stats[model_name], updates)
+
+    correct_avg_gaps(stats, len(instances))
+
+    return stats
 
 
 def print_stats(for_dnn=False):
@@ -93,5 +129,23 @@ def print_stats(for_dnn=False):
     generate_tex_table_code(f'train_and_validation_table_{infix}.tex', all_data_stats, 3240)
 
 
+def generate_all_models_tex_table_code(ofn, data_dict, num_samples):
+    column_order = ['ngood', 'nopt', 'nfeas']
+    sort_by_desc = 'ngood'
+    ostr = 'Ranking & Model & Good (\\%) & Optimal (\\%) & Feasible (\\%) \\\\\n'
+
+    sorted_model_names = sorted(data_dict.keys(), key=lambda model_name: data_dict[model_name][sort_by_desc], reverse=True)
+    for ix, row_name in enumerate(sorted_model_names):
+        row_values = [str(ix+2), row_name] + ["{:.2f}".format(round(data_dict[row_name][column_name] / num_samples * 100.0, 2)) + '\\%' for column_name in column_order]
+        ostr += ' & '.join(row_values) + '\\\\\n'
+
+    with open(ofn, 'w') as fp:
+        fp.write(ostr)
+
+
 if __name__ == '__main__':
-    print_stats(for_dnn=False)
+    # print_stats(for_dnn=False)
+    instances = instances_from_prediction_csv('predictions_models_onlyvalidation.csv')
+    stats = all_model_stats_on_instances(instances)
+    print(json.dumps(stats, indent=4))
+    generate_all_models_tex_table_code(f'all_models_validation_table.tex', stats, 295)
